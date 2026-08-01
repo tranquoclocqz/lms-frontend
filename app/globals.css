@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+html {
+  font-family:
+    "Plus Jakarta Sans",
+    "Segoe UI",
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+}
+
+body {
+  min-height: 100%;
+  background: #ffffff;
+  color: #020617;
+}
+
+code,
+pre,
+kbd,
+samp {
+  font-family:
+    "SFMono-Regular",
+    "SF Mono",
+    Consolas,
+    "Liberation Mono",
+    Menlo,
+    monospace;
+}

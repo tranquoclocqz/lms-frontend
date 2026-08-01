@@ -1,0 +1,467 @@
+"use client";
+
+import Link from "next/link";
+import type { SVGProps } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { resolveLessonIndex } from "@/lib/course-lessons";
+import { getDemoCourseById } from "@/lib/ui-demo-data";
+import type { CourseResponseShape, StudentCourse } from "@/typing";
+
+type CourseResponse = CourseResponseShape;
+
+type MyCoursesResponse = {
+  success?: boolean;
+  canAccess?: boolean;
+  message?: string;
+};
+
+export default function LearningPage({
+  params,
+}: {
+  params: Promise<{ courseId: string; lessonId: string }>;
+}) {
+  const [courseId, setCourseId] = useState("");
+  const [lessonId, setLessonId] = useState("");
+  const [course, setCourse] = useState<StudentCourse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [accessChecked, setAccessChecked] = useState(false);
+  const [isEnrolled, setIsEnrolled] = useState(false);
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const teacherMode = false;
+
+  async function fetchCourse(resolvedCourseId: string, mounted = true) {
+    try {
+      setLoading(true);
+      setError("");
+
+      const demoCourse = getDemoCourseById(resolvedCourseId);
+
+      if (!demoCourse) {
+        throw new Error("Không tìm thấy khóa học");
+      }
+
+      if (mounted) {
+        setCourse(demoCourse as StudentCourse);
+      }
+    } catch (fetchError) {
+      console.error(fetchError);
+
+      if (mounted) {
+        setError(
+          fetchError instanceof Error
+            ? fetchError.message
+            : "Không thể tải khóa học",
+        );
+      }
+    } finally {
+      if (mounted) {
+        setLoading(false);
+      }
+    }
+  }
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function resolveParamsAndFetch() {
+      const resolvedParams = await params;
+
+      if (!mounted) {
+        return;
+      }
+
+      setCourseId(resolvedParams.courseId);
+      setLessonId(resolvedParams.lessonId);
+      await fetchCourse(resolvedParams.courseId, mounted);
+    }
+
+    void resolveParamsAndFetch();
+
+    return () => {
+      mounted = false;
+    };
+  }, [params]);
+
+  useEffect(() => {
+    if (!courseId || teacherMode) {
+      return;
+    }
+
+    let mounted = true;
+
+    async function fetchEnrollmentStatus() {
+      try {
+        setAccessChecked(false);
+
+        if (mounted) {
+          setIsEnrolled(true);
+        }
+      } catch (enrollmentError) {
+        console.error(enrollmentError);
+
+        if (mounted) {
+          setIsEnrolled(false);
+        }
+      } finally {
+        if (mounted) {
+          setAccessChecked(true);
+        }
+      }
+    }
+
+    void fetchEnrollmentStatus();
+
+    return () => {
+      mounted = false;
+    };
+  }, [courseId, teacherMode]);
+
+  const lessons = useMemo(() => course?.lessons || [], [course?.lessons]);
+  const lessonIndex = useMemo(
+    () => resolveLessonIndex(lessons, lessonId),
+    [lessonId, lessons],
+  );
+  const activeLesson =
+    Number.isInteger(lessonIndex) && lessonIndex >= 0
+      ? lessons[lessonIndex]
+      : undefined;
+  const hasCourseAccess = teacherMode || isEnrolled;
+  const isAccessReady = teacherMode || accessChecked;
+  const canWatchActiveLesson = Boolean(
+    activeLesson &&
+      (teacherMode || hasCourseAccess || Boolean(activeLesson.isFreePreview)),
+  );
+
+  const derivedError = useMemo(() => {
+    if (error) {
+      return error;
+    }
+
+    if (!loading && !course) {
+      return "Không tìm thấy khóa học";
+    }
+
+    if (!loading && !Number.isInteger(lessonIndex)) {
+      return "Chỉ mục bài học không hợp lệ";
+    }
+
+    if (!loading && lessonIndex < 0) {
+      return "Chỉ mục bài học không hợp lệ";
+    }
+
+    if (!loading && course && !activeLesson) {
+      return "Không tìm thấy bài học";
+    }
+
+    return "";
+  }, [activeLesson, course, error, lessonIndex, loading]);
+
+  if (loading || !isAccessReady) {
+    return (
+      <div className="min-h-screen bg-[#f5f7fb]">
+        <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <main className="space-y-6 p-6">
+            <div className="h-4 w-24 animate-pulse rounded bg-slate-200" />
+            <div className="h-10 w-2/3 animate-pulse rounded bg-slate-200" />
+            <div className="aspect-video animate-pulse rounded-[28px] bg-slate-200" />
+            <div className="rounded-[28px] bg-white p-6">
+              <div className="h-8 w-40 animate-pulse rounded bg-slate-200" />
+              <div className="mt-4 h-4 w-full animate-pulse rounded bg-slate-100" />
+              <div className="mt-2 h-4 w-5/6 animate-pulse rounded bg-slate-100" />
+            </div>
+          </main>
+          <aside className="border-l border-slate-200 bg-white p-6">
+            <div className="h-8 w-40 animate-pulse rounded bg-slate-200" />
+            <div className="mt-6 space-y-3">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="h-20 animate-pulse rounded-[24px] bg-slate-100"
+                />
+              ))}
+            </div>
+          </aside>
+        </div>
+      </div>
+    );
+  }
+
+  if (derivedError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#f5f7fb] px-4">
+        <div className="w-full max-w-xl rounded-[32px] border border-slate-200 bg-white p-8 text-center shadow-[0_24px_64px_-42px_rgba(15,23,42,0.22)]">
+          <h1 className="text-2xl font-semibold text-slate-950">Không thể tải bài học</h1>
+          <p className="mt-3 text-sm text-slate-500">{derivedError}</p>
+          <div className="mt-6 flex justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => void fetchCourse(courseId)}
+              className="rounded-full bg-slate-950 px-5 py-3 text-sm font-medium text-white transition hover:bg-blue-700"
+            >
+              Thử lại
+            </button>
+            <Link
+              href={`/student/courses/${courseId}`}
+              className="rounded-full border border-slate-200 px-5 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            >
+              Quay lại khóa học
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#f5f7fb] text-slate-950">
+      <div
+        className={`grid min-h-screen grid-cols-1 ${
+          sidebarExpanded
+            ? "lg:grid-cols-[minmax(0,1fr)_360px]"
+            : "lg:grid-cols-[minmax(0,1fr)_92px]"
+        }`}
+      >
+        <main className="min-w-0 p-4 sm:p-6 lg:p-8">
+          <div className="rounded-[32px] border border-slate-200 bg-white p-5 shadow-[0_22px_60px_-42px_rgba(15,23,42,0.2)] sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                  Đang học
+                </p>
+                <h1 className="mt-2 text-2xl font-bold leading-tight sm:text-3xl">
+                  {activeLesson?.title}
+                </h1>
+                <p className="mt-2 text-sm text-slate-500">{course?.title}</p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Link
+                  href={`/student/courses/${courseId}`}
+                  className="inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                >
+                  Chi tiết khóa học
+                </Link>
+                <Link
+                  href="/my-courses"
+                  className="inline-flex items-center rounded-full bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+                >
+                  Khóa học của tôi
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-[0_22px_60px_-42px_rgba(15,23,42,0.2)]">
+            <div className="aspect-video bg-black">
+              {canWatchActiveLesson && activeLesson?.videoUrl ? (
+                activeLesson.videoSource === "bunny" ? (
+                  <iframe
+                    src={activeLesson.videoUrl}
+                    allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                    allowFullScreen
+                    className="h-full w-full border-0 bg-black"
+                    title={activeLesson.title}
+                  />
+                ) : (
+                  <video
+                    src={activeLesson.videoUrl}
+                    controls
+                    className="h-full w-full bg-black"
+                  />
+                )
+              ) : canWatchActiveLesson ? (
+                <div className="flex h-full items-center justify-center text-center text-sm text-slate-300">
+                  Bài học này chưa có video.
+                </div>
+              ) : (
+                <div className="flex h-full flex-col items-center justify-center bg-[radial-gradient(circle_at_top,rgba(79,70,229,0.22),transparent_38%),linear-gradient(180deg,#0f172a_0%,#111827_100%)] px-6 text-center">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-700 bg-slate-800 text-blue-300">
+                    <LockClosedIcon className="h-6 w-6" />
+                  </div>
+                  <h2 className="mt-5 text-xl font-semibold text-white">
+                    Bài học này đang bị khóa
+                  </h2>
+                  <p className="mt-3 max-w-md text-sm leading-6 text-slate-300">
+                    Bài học này cần mua khóa học hoặc kích hoạt mã để xem.
+                  </p>
+                  <Link
+                    href={`/student/courses/${courseId}`}
+                    className="mt-6 inline-flex items-center rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+                  >
+                    Quay lại trang chi tiết khóa học
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-6 rounded-[32px] border border-slate-200 bg-white p-5 shadow-[0_22px_60px_-42px_rgba(15,23,42,0.2)] sm:p-6">
+            <h2 className="text-lg font-semibold sm:text-xl">Về bài học này</h2>
+            <p className="mt-3 text-sm leading-7 text-slate-600">
+              {canWatchActiveLesson
+                ? activeLesson?.description || "Chưa có mô tả cho bài học này."
+                : "Bài học này cần mua khóa học hoặc kích hoạt mã để xem."}
+            </p>
+
+            <div className="mt-5 flex flex-wrap gap-3 text-sm text-slate-500">
+              <span>Thời lượng: {activeLesson?.duration || "--:--"}</span>
+              <span>{lessons.length} bài học trong khóa học này</span>
+              {activeLesson?.isFreePreview ? (
+                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
+                  Học thử
+                </span>
+              ) : null}
+            </div>
+          </div>
+        </main>
+
+        <aside className="border-t border-slate-200 bg-white lg:border-l lg:border-t-0">
+          <div className="flex items-center justify-between border-b border-slate-200 px-4 py-4 sm:px-5">
+            {sidebarExpanded ? (
+              <div className="min-w-0">
+                <h2 className="truncate text-lg font-semibold text-slate-950">
+                  Nội dung khóa học
+                </h2>
+                <div className="mt-1 truncate text-sm text-slate-500">
+                  {course?.title}
+                </div>
+              </div>
+            ) : (
+              <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 lg:w-full lg:text-center">
+                DS
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setSidebarExpanded((prev) => !prev)}
+              className="ml-3 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50"
+              aria-label={sidebarExpanded ? "Thu gọn danh sách bài học" : "Mở rộng danh sách bài học"}
+            >
+              {sidebarExpanded ? (
+                <ChevronRightIcon className="h-4 w-4 rotate-180" />
+              ) : (
+                <ChevronRightIcon className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+
+          {sidebarExpanded ? (
+            <div className="h-[calc(100vh-89px)] overflow-y-auto px-3 py-3 sm:px-4">
+              <div className="space-y-2">
+                {lessons.map((lesson, index) => {
+                  const isActive = index === lessonIndex;
+                  const canWatchLesson =
+                    teacherMode || hasCourseAccess || Boolean(lesson.isFreePreview);
+
+                  return (
+                    <Link
+                      key={`${lesson.title}-${index}`}
+                      href={`/learn/${course?._id}/${index}`}
+                      className={`block rounded-[24px] border px-4 py-4 transition ${
+                        isActive
+                          ? "border-blue-200 bg-[linear-gradient(135deg,#eff6ff_0%,#eef2ff_100%)] text-blue-700 shadow-[0_18px_40px_-30px_rgba(37,99,235,0.45)]"
+                          : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div
+                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl text-xs font-semibold ${
+                            isActive
+                              ? "bg-white text-blue-700"
+                              : "bg-slate-100 text-slate-600"
+                          }`}
+                        >
+                          {index + 1}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <p
+                              className={`truncate text-sm font-medium ${
+                                isActive ? "text-blue-700" : "text-slate-900"
+                              }`}
+                              title={lesson.title}
+                            >
+                              {lesson.title}
+                            </p>
+                            {lesson.isFreePreview ? (
+                              <span
+                                className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] ${
+                                  isActive
+                                    ? "bg-white text-blue-700"
+                                    : "border border-emerald-200 bg-emerald-50 text-emerald-700"
+                                }`}
+                              >
+                                Học thử
+                              </span>
+                            ) : null}
+                            {!canWatchLesson ? (
+                              <span
+                                className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] ${
+                                  isActive
+                                    ? "bg-white text-blue-700"
+                                    : "border border-amber-200 bg-amber-50 text-amber-700"
+                                }`}
+                              >
+                                Khóa
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="mt-1 flex items-center justify-between gap-2">
+                            <p
+                              className={`truncate text-xs ${
+                                isActive ? "text-blue-600" : "text-slate-500"
+                              }`}
+                              title={
+                                canWatchLesson
+                                  ? lesson.description || "Chưa có mô tả cho bài học này."
+                                  : "Cần mua khóa học hoặc kích hoạt mã"
+                              }
+                            >
+                              {canWatchLesson
+                                ? lesson.description || "Chưa có mô tả cho bài học này."
+                                : "Cần mua hoặc kích hoạt để xem"}
+                            </p>
+                            <span
+                              className={`shrink-0 text-[11px] ${
+                                isActive ? "text-blue-600" : "text-slate-500"
+                              }`}
+                            >
+                              {lesson.duration || "--:--"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="flex h-[calc(100vh-89px)] items-start justify-center px-3 py-4">
+              <div className="text-xs font-medium tracking-[0.18em] text-slate-400 [writing-mode:vertical-rl] [text-orientation:mixed]">
+                {lessons.length} bài học
+              </div>
+            </div>
+          )}
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+function ChevronRightIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} aria-hidden="true" {...props}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="m9 6 6 6-6 6" />
+    </svg>
+  );
+}
+
+function LockClosedIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} aria-hidden="true" {...props}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V8.25a4.5 4.5 0 1 0-9 0v2.25m-1.5 0h12a1.5 1.5 0 0 1 1.5 1.5v7.5A1.5 1.5 0 0 1 18 21H6a1.5 1.5 0 0 1-1.5-1.5V12A1.5 1.5 0 0 1 6 10.5Z" />
+    </svg>
+  );
+}
