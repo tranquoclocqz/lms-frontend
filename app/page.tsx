@@ -1,28 +1,22 @@
-"use client";
+import { HomePageClient } from "@/components/HomePageClient";
+import { ICourse } from "@/typing/Courses";
 
-import { useEffect } from "react";
-import { StudentCourseCatalog } from "@/components/StudentCourseCatalog";
-import type { StudentCourse } from "@/lib/course-marketplace";
-import { demoCourses } from "@/lib/ui-demo-data";
-import { initializeCourses } from "@/lib/features/courses/coursesSlice";
-import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+export const revalidate = 300;
 
-export default function HomePage() {
-  const dispatch = useAppDispatch();
-  const courses = useAppSelector((state) => state.courses.items);
+async function getInitialCourses() {
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses?highlight=1`, {
+      next: { revalidate },
+    });
+    const result = await res.json();
+    return result.data || [];
+  } catch (error) {
+    console.error("Lỗi fetch khóa học từ Server:", error);
+    return [];
+  }
+}
 
-  useEffect(() => {
-    dispatch(initializeCourses(demoCourses as StudentCourse[]));
-  }, [dispatch]);
-
-  return (
-    <StudentCourseCatalog
-      initialCourses={courses}
-      initialError={null}
-      layoutVariant="discover"
-      pageTitle="Khám phá BrainCourse"
-      pageDescription="Một không gian học tập hiện đại để tìm khóa học nổi bật, khóa học mới và bắt đầu học nhanh hơn."
-      activeHref="/"
-    />
-  );
+export default async function HomePage() {
+  const initialCourses: ICourse[] = await getInitialCourses();
+  return <HomePageClient initialCourses={initialCourses} />;
 }

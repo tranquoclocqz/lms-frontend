@@ -8,62 +8,64 @@ import {
   getCourseRating,
   getCourseVisualTheme,
 } from "@/lib/course-marketplace";
-import type { CourseLesson, StudentCourse } from "@/typing";
+import type { ICategory } from "@/typing/category";
+import { ICourse } from "@/typing/Courses";
 
-type CourseCardCourse = StudentCourse;
-
-type CourseCardProps = {
-  course: CourseCardCourse;
-  mode: "student" | "admin";
-  href?: string;
-  studentLayout?: "default" | "minimal";
-  studentState?: {
-    canLearn?: boolean;
-    progress?: number;
-    ctaLabel?: string;
-    statusLabel?: string;
-  };
-  onView?: (course: CourseCardCourse) => void;
-  onEdit?: (course: CourseCardCourse) => void;
-  onDelete?: (course: CourseCardCourse) => void;
-  deleting?: boolean;
+type CourseCardCourse = {
+  id?: number | string;
+  _id?: string;
+  title?: string;
+  slug?: string;
+  description?: string;
+  shortDescription?: string;
+  thumbnail_url?: string;
+  thumbnailUrl?: string;
+  price?: number;
+  original_price?: number;
+  authorName?: string;
+  category?: string | ICategory;
+  status?: string;
+  lessons?: Array<{ order?: number; title?: string }>;
 };
 
 export function CourseCard({
   course,
-  mode,
   href,
-  studentLayout = "default",
   studentState,
-  onView,
-  onEdit,
-  onDelete,
-  deleting = false,
-}: CourseCardProps) {
+}: {
+  course: ICourse;
+  href?: string;
+  mode?: string;
+  studentState?: {
+    canLearn?: boolean;
+    progress?: number;
+    ctaLabel?: string;
+  };
+}) {
+  const resolvedCourseId =
+    course.id || (typeof course.id !== "undefined" ? String(course.id) : "");
   const safeTitle = course.title?.trim() || "Khóa học BrainCourse";
-  const displayAuthorName = "Cô Mai UI UX";
-  const safeThumbnailUrl = course.thumbnailUrl?.trim() || "";
-  const theme = getCourseVisualTheme(`${safeTitle}${course._id}`);
+  const displayAuthorName = course.user?.name?.trim() || "Cô Mai UI UX";
+  const safeThumbnailUrl =
+    course.thumbnail_url?.trim() || course.thumbnail_url?.trim() || "";
+  const theme = getCourseVisualTheme(`${safeTitle}${resolvedCourseId}`);
   const rating = getCourseRating();
-  const primaryPrice = course.discountPrice ?? course.price;
-  const originalPrice = course.originalPrice;
-  const lessonCount = course.lessons?.length || 0;
+  const primaryPrice = course.price;
+  const originalPrice = course.original_price;
+  const lessonCount = 10;
   const isFreeCourse = !primaryPrice || Number(primaryPrice) <= 0;
   const badgeLabel = getDisplayBadge(isFreeCourse);
-  const categoryLabel = getCategoryBadgeLabel(course.category);
-  const studentCtaLabel =
-    studentState?.ctaLabel ||
-    (studentState?.canLearn
-      ? studentState.progress && studentState.progress > 0
-        ? "Tiếp tục học"
-        : "Học ngay"
-      : isFreeCourse
-        ? "Học ngay"
-        : "Xem chi tiết");
-  const isMinimalStudentCard = mode === "student" && studentLayout === "minimal";
-  const studentHref = href || `/student/courses/${course._id}`;
+  const categoryName =
+    typeof course.category === "string"
+      ? course.category
+      : course.category?.name;
+  const categoryLabel = getCategoryBadgeLabel(categoryName);
+  const studentCtaLabel = studentState?.ctaLabel || "Học ngay";
+  const isMinimalStudentCard = true;
+  const studentHref =
+    href ||
+    (resolvedCourseId ? `/student/courses/${resolvedCourseId}` : "/student/courses");
 
-  if (mode === "student") {
     return (
       <Link href={studentHref} className="group block h-full rounded-[22px]">
         <article className="flex h-full flex-col overflow-hidden rounded-[22px] border border-slate-200/80 bg-white shadow-[0_18px_44px_-32px_rgba(15,23,42,0.18)] transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_34px_70px_-34px_rgba(29,78,216,0.22)]">
@@ -92,102 +94,6 @@ export function CourseCard({
         </article>
       </Link>
     );
-  }
-
-  return (
-    <div
-      className="group h-full cursor-pointer"
-      onClick={() => onView?.(course)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onView?.(course);
-        }
-      }}
-    >
-      <article className="flex h-full flex-col overflow-hidden rounded-[22px] border border-slate-200/80 bg-white shadow-[0_18px_44px_-32px_rgba(15,23,42,0.18)] transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_34px_70px_-34px_rgba(29,78,216,0.22)]">
-        <CardMedia
-          safeThumbnailUrl={safeThumbnailUrl}
-          safeTitle={safeTitle}
-          categoryLabel={categoryLabel}
-          badgeLabel={badgeLabel}
-          theme={theme}
-          sizes="(max-width: 767px) 100vw, (max-width: 1279px) 50vw, 33vw"
-        />
-
-        <div className="flex flex-1 flex-col p-6">
-          <div>
-            <h3 className="line-clamp-2 text-[1.16rem] font-semibold leading-7 tracking-[-0.025em] text-slate-950 sm:text-[1.22rem]">
-              {safeTitle}
-            </h3>
-            <p className="mt-1.5 text-sm font-medium text-slate-500">
-              {displayAuthorName}
-            </p>
-            <div className="mt-2 flex items-center gap-2 text-[0.92rem] text-slate-500">
-              <span className="font-medium text-amber-600">★ {rating.rating}</span>
-              <span className="text-slate-300">•</span>
-              <span>{lessonCount} bài học</span>
-            </div>
-            <div className="mt-4 border-t border-slate-100 pt-4">
-              <p
-                className={`text-[1.58rem] font-bold tracking-[-0.03em] ${
-                  isFreeCourse ? "text-emerald-600" : "text-slate-950"
-                }`}
-              >
-                {formatPriceVnd(primaryPrice)}
-              </p>
-              {originalPrice && originalPrice > 0 ? (
-                <p className="mt-1 text-[0.82rem] font-medium text-slate-400 line-through">
-                  {formatPriceVnd(originalPrice)}
-                </p>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="mt-auto pt-4">
-            <div className="flex items-center justify-between gap-3 border-t border-slate-200 pt-4">
-              <p className="text-sm text-slate-500">{lessonCount} bài học</p>
-              <div className="flex flex-wrap justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onView?.(course);
-                  }}
-                  className="inline-flex items-center rounded-full border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
-                >
-                  Xem
-                </button>
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onEdit?.(course);
-                  }}
-                  className="inline-flex items-center rounded-full border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
-                >
-                  Sửa
-                </button>
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onDelete?.(course);
-                  }}
-                  disabled={deleting}
-                  className="inline-flex items-center rounded-full bg-rose-50 px-3 py-2 text-xs font-medium text-rose-600 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {deleting ? "Đang xóa..." : "Xóa"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </article>
-    </div>
-  );
 }
 
 function CardMedia({

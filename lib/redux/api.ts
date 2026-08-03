@@ -13,7 +13,7 @@ type ApiEnvelope<T> = {
 };
 
 const rawBaseQuery = fetchBaseQuery({
-  baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || "/api",
+  baseUrl: process.env.NEXT_PUBLIC_API_URL || "/api",
   credentials: "include",
   prepareHeaders: (headers) => {
     if (typeof window !== "undefined") {

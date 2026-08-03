@@ -55,14 +55,11 @@ export function StudentShell({
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const isSignedIn = false;
-  const primaryEmail = "";
   const teacherMode = false;
-  const currentUrl = pathname;
   const signInHref = `/student/courses`;
   const signUpHref = `/student/courses`;
 
   const navItems = isSignedIn ? studentNavItems : publicNavItems;
-  const profileName = "BrainCourse";
   const resolvedActiveHref = getResolvedActiveHref(navItems, activeHref || pathname);
 
   return (

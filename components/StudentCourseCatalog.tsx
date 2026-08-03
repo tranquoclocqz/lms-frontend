@@ -1,48 +1,23 @@
 "use client";
 
+import { StudentShell } from "@/components/StudentShell";
+import type { ICourse } from "@/typing/Courses";
 import Link from "next/link";
 import type { SVGProps } from "react";
-import { useDeferredValue, useEffect, useState, useTransition } from "react";
-import { CourseCard } from "@/components/CourseCard";
-import { StudentShell } from "@/components/StudentShell";
-import {
-  formatCourseCategory,
-  type StudentCourse,
-} from "@/lib/course-marketplace";
-import { demoCourses } from "@/lib/ui-demo-data";
-import type { StudentCourse as StudentCourseType } from "@/typing";
-
-type CoursesResponse = {
-  success?: boolean;
-  courses?: StudentCourseType[];
-  message?: string;
-};
-
-type MyCoursesResponse = {
-  success?: boolean;
-  courses?: Array<{
-    progress: number;
-    course: {
-      _id: string;
-    };
-  }>;
-};
+import { useState } from "react";
+import CourseGridSection from "./CourseGridSection";
 
 type StudentCourseCatalogProps = {
-  initialCourses?: StudentCourse[];
+  initialCourses?: ICourse[];
   initialError?: string | null;
+  isRefreshing?: boolean;
+  onRetry?: () => void;
   pageTitle?: string;
   pageDescription?: string;
   activeHref?: string;
   layoutVariant?: "discover" | "catalog";
 };
 
-type CourseOwnershipMap = Record<
-  string,
-  {
-    progress: number;
-  }
->;
 
 const discoverCategoryPills = [
   { label: "AI Product Manager", query: "AI" },
@@ -60,86 +35,9 @@ export function StudentCourseCatalog({
   activeHref = "/",
   layoutVariant = "catalog",
 }: StudentCourseCatalogProps) {
-  const [courses, setCourses] = useState<StudentCourse[]>(initialCourses.length ? initialCourses : (demoCourses as StudentCourse[]));
-  const [ownershipMap, setOwnershipMap] = useState<CourseOwnershipMap>({});
-  const [error, setError] = useState(initialError || "");
+
   const [search, setSearch] = useState("");
-  const [isRefreshing, startTransition] = useTransition();
-
-  const deferredSearch = useDeferredValue(search);
-  const teacherMode = false;
-  const isSignedInStudent = false;
-
-  useEffect(() => {
-    if (!isSignedInStudent) {
-      return;
-    }
-
-    const nextOwnershipMap: CourseOwnershipMap = {
-      "course-1": { progress: 42 },
-      "course-2": { progress: 100 },
-    };
-
-    setOwnershipMap(nextOwnershipMap);
-  }, [isSignedInStudent]);
-
-  function handleRetry() {
-    startTransition(() => {
-      setError("");
-      setCourses((demoCourses as StudentCourse[]));
-    });
-  }
-
-  const filteredCourses = courses
-    .filter((course) => {
-      const query = deferredSearch.trim().toLowerCase();
-      if (!query) {
-        return true;
-      }
-
-      const haystacks = [
-        course.title || "",
-        course.shortDescription || "",
-        course.description || "",
-        course.category || "",
-        course.authorName || "",
-        formatCourseCategory(course.category),
-      ];
-
-      return haystacks.some((value) => value.toLowerCase().includes(query));
-    })
-    .sort((leftCourse, rightCourse) => {
-      const leftTime = new Date(leftCourse.createdAt || 0).getTime();
-      const rightTime = new Date(rightCourse.createdAt || 0).getTime();
-
-      return rightTime - leftTime;
-    });
-
-  const featuredCourses = [...courses]
-    .sort((leftCourse, rightCourse) => {
-      const leftLessons = leftCourse.lessons?.length || 0;
-      const rightLessons = rightCourse.lessons?.length || 0;
-      const leftPrice = Number(leftCourse.discountPrice ?? leftCourse.price ?? 0);
-      const rightPrice = Number(rightCourse.discountPrice ?? rightCourse.price ?? 0);
-
-      if (rightLessons !== leftLessons) {
-        return rightLessons - leftLessons;
-      }
-
-      return rightPrice - leftPrice;
-    })
-    .slice(0, 4);
-
-  const newestCourses = [...courses]
-    .sort((leftCourse, rightCourse) => {
-      const leftTime = new Date(leftCourse.createdAt || 0).getTime();
-      const rightTime = new Date(rightCourse.createdAt || 0).getTime();
-
-      return rightTime - leftTime;
-    })
-    .slice(0, 4);
-
-  const totalCourses = courses.length;
+  const error = initialError || "";
 
   return (
     <StudentShell
@@ -168,13 +66,6 @@ export function StudentCourseCatalog({
                 Không thể tải danh sách khóa học
               </h2>
               <p className="mt-3 text-sm leading-6 text-slate-500">{error}</p>
-              <button
-                type="button"
-                onClick={handleRetry}
-                className="mt-6 inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-sm font-medium text-white transition hover:bg-blue-700"
-              >
-                Thử lại
-              </button>
             </section>
           ) : (
             <>
@@ -182,173 +73,27 @@ export function StudentCourseCatalog({
                 eyebrow="Khóa học nổi bật"
                 title="Khóa học nổi bật"
                 description="Những khóa học được học viên quan tâm nhiều nhất."
-                courses={featuredCourses.slice(0, 4)}
-                ownershipMap={ownershipMap}
+                courses={initialCourses}
               />
 
               <CourseGridSection
                 eyebrow="Khóa học mới"
                 title="Nội dung mới được cập nhật"
                 description="Bắt đầu với những khóa học vừa xuất hiện gần đây trong thư viện."
-                courses={newestCourses}
-                ownershipMap={ownershipMap}
+                courses={initialCourses}
               />
             </>
           )}
         </>
       ) : (
         <>
-          {isRefreshing ? (
-            <section className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {Array.from({ length: 6 }).map((_, index) => (
-                <CourseSkeletonCard key={index} />
-              ))}
-            </section>
-          ) : error ? (
-            <section className="rounded-[32px] border border-rose-200 bg-white p-10 text-center shadow-[0_24px_60px_-42px_rgba(225,29,72,0.25)]">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-rose-50 text-rose-600">
-                <ExclamationTriangleIcon className="h-7 w-7" />
-              </div>
-              <h2 className="mt-5 text-2xl font-semibold text-slate-950">
-                Không thể tải danh sách khóa học
-              </h2>
-              <p className="mt-3 text-sm leading-6 text-slate-500">{error}</p>
-              <button
-                type="button"
-                onClick={handleRetry}
-                className="mt-6 inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-sm font-medium text-white transition hover:bg-blue-700"
-              >
-                Thử lại
-              </button>
-            </section>
-          ) : filteredCourses.length === 0 ? (
-            <section className="rounded-[32px] border border-dashed border-slate-300 bg-white px-6 py-16 text-center shadow-[0_24px_60px_-42px_rgba(15,23,42,0.18)]">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-slate-500">
-                <BookOpenIcon className="h-7 w-7" />
-              </div>
-              <h2 className="mt-5 text-2xl font-semibold text-slate-950">
-                Không có khóa học phù hợp
-              </h2>
-              <p className="mt-3 text-sm leading-6 text-slate-500">
-                Thử từ khóa khác hoặc xóa bộ lọc để xem toàn bộ danh sách.
-              </p>
-            </section>
-          ) : (
-            <section className="space-y-5">
-              <div className="flex flex-wrap items-end justify-between gap-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
-                    Tất cả khóa học
-                  </p>
-                  <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
-                    Danh sách khóa học đang mở bán và học
-                  </h2>
-                  <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-                    Mỗi card giữ nguyên dữ liệu thật từ hệ thống: thumbnail, giá,
-                    badge cấp độ, giảng viên và CTA theo trạng thái cơ bản.
-                  </p>
-                </div>
-                <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500 shadow-sm">
-                  {filteredCourses.length} / {totalCourses} khóa học
-                </div>
-              </div>
 
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-                {filteredCourses.map((course) => {
-                  const ownership = ownershipMap[course._id];
-                  const primaryPrice = Number(course.discountPrice ?? course.price ?? 0);
-                  const isFreeCourse =
-                    !Number.isFinite(primaryPrice) || primaryPrice <= 0;
-                  const canLearn = Boolean(ownership) || isFreeCourse;
-
-                  return (
-                    <CourseCard
-                      key={course._id}
-                      course={course}
-                      mode="student"
-                      studentLayout="minimal"
-                      studentState={{
-                        canLearn,
-                        progress: ownership?.progress || 0,
-                        ctaLabel: ownership
-                          ? ownership.progress > 0
-                            ? "Tiếp tục học"
-                            : "Vào học"
-                          : isFreeCourse
-                            ? "Học miễn phí"
-                            : "Xem chi tiết",
-                      }}
-                    />
-                  );
-                })}
-              </div>
-            </section>
-          )}
         </>
       )}
     </StudentShell>
   );
 }
 
-function CourseGridSection({
-  eyebrow,
-  title,
-  description,
-  courses,
-  ownershipMap,
-}: {
-  eyebrow: string;
-  title: string;
-  description: string;
-  courses: StudentCourse[];
-  ownershipMap: CourseOwnershipMap;
-}) {
-  return (
-    <section className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold tracking-[0.16em] text-slate-400">
-            {eyebrow}
-          </p>
-          <h2 className="mt-1.5 text-2xl font-semibold tracking-tight text-slate-950 sm:text-[1.95rem]">
-            {title}
-          </h2>
-          <p className="mt-1.5 max-w-2xl text-sm leading-6 text-slate-500">
-            {description}
-          </p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-        {courses.map((course) => {
-          const ownership = ownershipMap[course._id];
-          const primaryPrice = Number(course.discountPrice ?? course.price ?? 0);
-          const isFreeCourse = !Number.isFinite(primaryPrice) || primaryPrice <= 0;
-          const canLearn = Boolean(ownership) || isFreeCourse;
-
-          return (
-            <CourseCard
-              key={course._id}
-              course={course}
-              mode="student"
-              studentState={{
-                canLearn,
-                progress: ownership?.progress || 0,
-                ctaLabel: ownership
-                  ? ownership.progress > 0
-                    ? "Tiếp tục học"
-                    : "Vào học"
-                  : isFreeCourse
-                    ? "Học miễn phí"
-                    : "Xem chi tiết",
-              }}
-            />
-          );
-        })}
-      </div>
-    </section>
-  );
-}
 
 function KnowledgeNetworkHero() {
   return (
@@ -521,11 +266,10 @@ function CategoryPillSection({
               key={item.label}
               type="button"
               onClick={() => onSelect(isActive ? "" : item.query)}
-              className={`inline-flex items-center rounded-full border px-4 py-2.5 text-sm font-medium transition ${
-                isActive
-                  ? "border-blue-200 bg-blue-600 text-white shadow-[0_16px_28px_-20px_rgba(37,99,235,0.7)]"
-                  : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-              }`}
+              className={`inline-flex items-center rounded-full border px-4 py-2.5 text-sm font-medium transition ${isActive
+                ? "border-blue-200 bg-blue-600 text-white shadow-[0_16px_28px_-20px_rgba(37,99,235,0.7)]"
+                : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                }`}
             >
               {item.label}
             </button>
@@ -536,34 +280,11 @@ function CategoryPillSection({
   );
 }
 
-function CourseSkeletonCard() {
-  return (
-    <div className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-[0_14px_38px_-28px_rgba(15,23,42,0.24)]">
-      <div className="aspect-video animate-pulse bg-slate-200" />
-      <div className="space-y-3 p-6">
-        <div className="h-5 w-28 animate-pulse rounded-full bg-slate-200" />
-        <div className="h-6 w-5/6 animate-pulse rounded bg-slate-200" />
-        <div className="h-4 w-3/4 animate-pulse rounded bg-slate-100" />
-        <div className="h-4 w-2/3 animate-pulse rounded bg-slate-100" />
-        <div className="h-10 w-full animate-pulse rounded-full bg-slate-100" />
-      </div>
-    </div>
-  );
-}
 
 function ExclamationTriangleIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} aria-hidden="true" {...props}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4.5m0 3h.008m-8.257 3.371h16.498c1.55 0 2.514-1.683 1.732-3.037L13.732 4.29c-.775-1.323-2.689-1.323-3.464 0L2.018 16.834c-.782 1.354.182 3.037 1.732 3.037Z" />
-    </svg>
-  );
-}
-
-function BookOpenIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} aria-hidden="true" {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75A2.25 2.25 0 0 1 6 4.5h11.25a2.25 2.25 0 0 1 2.25 2.25v10.5A2.25 2.25 0 0 0 17.25 15H6a2.25 2.25 0 0 0-2.25 2.25V6.75Z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M6 4.5v10.5A2.25 2.25 0 0 1 8.25 12.75H19.5" />
     </svg>
   );
 }
