@@ -197,27 +197,7 @@ export default function MyCoursesPage() {
                 : "/student/courses";
 
               return (
-                <CourseCard
-                  key={course.enrollmentId || courseId || index}
-                  course={{
-                    _id: courseId,
-                    title: courseInfo.title,
-                    shortDescription: courseInfo.shortDescription,
-                    thumbnailUrl: courseInfo.thumbnailUrl,
-                    authorName: courseInfo.authorName,
-                    category: courseInfo.category,
-                    status: courseInfo.status,
-                    lessons: courseInfo.lessons,
-                  }}
-                  mode="student"
-                  href={firstLessonHref}
-                  studentState={{
-                    canLearn: true,
-                    progress: course.progress || 0,
-                    ctaLabel:
-                      course.progress > 0 ? "Tiếp tục học" : "Bắt đầu học",
-                  }}
-                />
+               <></>
               );
             })}
           </div>

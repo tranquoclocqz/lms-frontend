@@ -3,9 +3,9 @@ import { ICourse } from "@/typing/Courses";
 
 export const revalidate = 300;
 
-async function getInitialCourses() {
+async function getInitialCourses(isHighlighted = true): Promise<ICourse[]> {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses?highlight=1`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses${isHighlighted ? '?highlight=1' : ''}`, {
       next: { revalidate },
     });
     const result = await res.json();
@@ -17,6 +17,7 @@ async function getInitialCourses() {
 }
 
 export default async function HomePage() {
-  const initialCourses: ICourse[] = await getInitialCourses();
-  return <HomePageClient initialCourses={initialCourses} />;
+  const initialCourses: ICourse[] = await getInitialCourses(true);
+  const lastedCourses: ICourse[] = await getInitialCourses(false);
+  return <HomePageClient initialCourses={initialCourses} lastedCourses={lastedCourses} />;
 }

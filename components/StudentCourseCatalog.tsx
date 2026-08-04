@@ -1,6 +1,7 @@
 "use client";
 
 import { StudentShell } from "@/components/StudentShell";
+import { usePageData } from "@/lib/contexts/PageDataContext";
 import type { ICourse } from "@/typing/Courses";
 import Link from "next/link";
 import type { SVGProps } from "react";
@@ -8,7 +9,6 @@ import { useState } from "react";
 import CourseGridSection from "./CourseGridSection";
 
 type StudentCourseCatalogProps = {
-  initialCourses?: ICourse[];
   initialError?: string | null;
   isRefreshing?: boolean;
   onRetry?: () => void;
@@ -18,6 +18,10 @@ type StudentCourseCatalogProps = {
   layoutVariant?: "discover" | "catalog";
 };
 
+interface HomePageData {
+  initialCourses: ICourse[];
+  lastedCourses: ICourse[];
+}
 
 const discoverCategoryPills = [
   { label: "AI Product Manager", query: "AI" },
@@ -28,7 +32,6 @@ const discoverCategoryPills = [
 ] as const;
 
 export function StudentCourseCatalog({
-  initialCourses = [],
   initialError = null,
   pageTitle = "Khám phá thư viện khóa học BrainCourse",
   pageDescription = "Tìm khóa học phù hợp, xem chi tiết và mua hoặc vào học ngay khi đã có quyền truy cập.",
@@ -38,6 +41,10 @@ export function StudentCourseCatalog({
 
   const [search, setSearch] = useState("");
   const error = initialError || "";
+
+
+  const { initialCourses: courses, lastedCourses: courses2 } = usePageData<HomePageData>();
+
 
   return (
     <StudentShell
@@ -73,14 +80,14 @@ export function StudentCourseCatalog({
                 eyebrow="Khóa học nổi bật"
                 title="Khóa học nổi bật"
                 description="Những khóa học được học viên quan tâm nhiều nhất."
-                courses={initialCourses}
+                courses={courses}
               />
 
               <CourseGridSection
                 eyebrow="Khóa học mới"
                 title="Nội dung mới được cập nhật"
                 description="Bắt đầu với những khóa học vừa xuất hiện gần đây trong thư viện."
-                courses={initialCourses}
+                courses={courses}
               />
             </>
           )}
