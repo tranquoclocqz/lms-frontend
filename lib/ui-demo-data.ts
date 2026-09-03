@@ -1,10 +1,10 @@
-import type { StudentCourse } from "@/lib/course-marketplace";
+import type { StudentCourse } from "@/typing";
 
 export type DemoCourse = StudentCourse;
 
 export const demoCourses: DemoCourse[] = [
   {
-    _id: "course-1",
+    _id: "1",
     title: "Product Design Essentials",
     shortDescription: "Thiết kế trải nghiệm người dùng và giao diện hiện đại.",
     description: "Một khóa học nền tảng giúp bạn làm quen với tư duy UX, wireframe và prototyping.",

@@ -1,4 +1,9 @@
 import type { ReactNode, SVGProps } from "react";
+import type { ICourse } from "@/typing/Courses";
+import type { ILesson } from "@/typing/lesson";
+
+export type { ICourse } from "@/typing/Courses";
+export type { ILesson } from "@/typing/lesson";
 
 export type CourseStatus = "Draft" | "Published";
 export type CourseLevel = "Beginner" | "Intermediate" | "Advanced";
@@ -6,6 +11,7 @@ export type VideoSource = "local" | "bunny";
 export type EnrollmentStatus = "active" | "completed" | "paused";
 
 export type CourseLesson = {
+  id?: number | string;
   title?: string;
   description?: string;
   videoSource?: VideoSource;
@@ -31,6 +37,18 @@ export type StudentCourse = {
   status?: CourseStatus;
   lessons?: CourseLesson[];
   createdAt?: string;
+};
+
+export type CourseDetailResponse = {
+  status: number;
+  data?: ICourse;
+  message?: string;
+};
+
+export type CourseLessonsResponse = {
+  status: number;
+  data?: ILesson[];
+  message?: string;
 };
 
 export type CourseFormState = {

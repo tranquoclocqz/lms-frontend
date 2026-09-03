@@ -5,15 +5,9 @@ import type { SVGProps } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { resolveLessonIndex } from "@/lib/course-lessons";
 import { getDemoCourseById } from "@/lib/ui-demo-data";
-import type { CourseResponseShape, StudentCourse } from "@/typing";
-
-type CourseResponse = CourseResponseShape;
-
-type MyCoursesResponse = {
-  success?: boolean;
-  canAccess?: boolean;
-  message?: string;
-};
+import { useGetLessonQuery } from "@/lib/redux/coursesApi";
+import type { StudentCourse } from "@/typing";
+import { HlsLessonVideo } from "./HlsLessonVideo";
 
 export default function LearningPage({
   params,
@@ -29,37 +23,13 @@ export default function LearningPage({
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const teacherMode = false;
-
-  async function fetchCourse(resolvedCourseId: string, mounted = true) {
-    try {
-      setLoading(true);
-      setError("");
-
-      const demoCourse = getDemoCourseById(resolvedCourseId);
-
-      if (!demoCourse) {
-        throw new Error("Không tìm thấy khóa học");
-      }
-
-      if (mounted) {
-        setCourse(demoCourse as StudentCourse);
-      }
-    } catch (fetchError) {
-      console.error(fetchError);
-
-      if (mounted) {
-        setError(
-          fetchError instanceof Error
-            ? fetchError.message
-            : "Không thể tải khóa học",
-        );
-      }
-    } finally {
-      if (mounted) {
-        setLoading(false);
-      }
-    }
-  }
+  const {
+    data: lessonResponse,
+    isLoading: isLessonLoading,
+    isError: isLessonError,
+    refetch: refetchLesson,
+  } = useGetLessonQuery(lessonId, { skip: !lessonId });
+  const lessonDetail = lessonResponse?.data;
 
   useEffect(() => {
     let mounted = true;
@@ -73,7 +43,10 @@ export default function LearningPage({
 
       setCourseId(resolvedParams.courseId);
       setLessonId(resolvedParams.lessonId);
-      await fetchCourse(resolvedParams.courseId, mounted);
+      const demoCourse = getDemoCourseById(resolvedParams.courseId);
+      setCourse(demoCourse);
+      setError(demoCourse ? "" : "Không tìm thấy khóa học");
+      setLoading(false);
     }
 
     void resolveParamsAndFetch();
@@ -122,10 +95,26 @@ export default function LearningPage({
     () => resolveLessonIndex(lessons, lessonId),
     [lessonId, lessons],
   );
-  const activeLesson =
+  const fallbackLesson =
     Number.isInteger(lessonIndex) && lessonIndex >= 0
       ? lessons[lessonIndex]
       : undefined;
+  const activeLesson = useMemo(
+    () =>
+      lessonDetail
+        ? {
+            id: lessonDetail.id,
+            title: lessonDetail.title,
+            description: lessonDetail.description,
+            videoSource: "local" as const,
+            videoUrl: lessonDetail.video_url,
+            duration: String(lessonDetail.duration_seconds ?? ""),
+            isFreePreview: lessonDetail.is_preview === 1,
+            order: lessonDetail.sort_order ?? lessonIndex + 1,
+          }
+        : fallbackLesson,
+    [fallbackLesson, lessonDetail, lessonIndex],
+  );
   const hasCourseAccess = teacherMode || isEnrolled;
   const isAccessReady = teacherMode || accessChecked;
   const canWatchActiveLesson = Boolean(
@@ -142,6 +131,10 @@ export default function LearningPage({
       return "Không tìm thấy khóa học";
     }
 
+    if (!isLessonLoading && isLessonError) {
+      return "Không thể tải bài học";
+    }
+
     if (!loading && !Number.isInteger(lessonIndex)) {
       return "Chỉ mục bài học không hợp lệ";
     }
@@ -155,9 +148,9 @@ export default function LearningPage({
     }
 
     return "";
-  }, [activeLesson, course, error, lessonIndex, loading]);
+  }, [activeLesson, course, error, isLessonError, isLessonLoading, lessonIndex, loading]);
 
-  if (loading || !isAccessReady) {
+  if (loading || isLessonLoading || !isAccessReady) {
     return (
       <div className="min-h-screen bg-[#f5f7fb]">
         <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px]">
@@ -196,7 +189,7 @@ export default function LearningPage({
           <div className="mt-6 flex justify-center gap-3">
             <button
               type="button"
-              onClick={() => void fetchCourse(courseId)}
+              onClick={() => void refetchLesson()}
               className="rounded-full bg-slate-950 px-5 py-3 text-sm font-medium text-white transition hover:bg-blue-700"
             >
               Thử lại
@@ -254,21 +247,11 @@ export default function LearningPage({
           <div className="mt-6 overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-[0_22px_60px_-42px_rgba(15,23,42,0.2)]">
             <div className="aspect-video bg-black">
               {canWatchActiveLesson && activeLesson?.videoUrl ? (
-                activeLesson.videoSource === "bunny" ? (
-                  <iframe
-                    src={activeLesson.videoUrl}
-                    allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-                    allowFullScreen
-                    className="h-full w-full border-0 bg-black"
-                    title={activeLesson.title}
-                  />
-                ) : (
-                  <video
-                    src={activeLesson.videoUrl}
-                    controls
-                    className="h-full w-full bg-black"
-                  />
-                )
+                <HlsLessonVideo
+                  key={activeLesson.id ?? activeLesson.videoUrl}
+                  src={activeLesson.videoUrl}
+                  watermark="@id:1"
+                />
               ) : canWatchActiveLesson ? (
                 <div className="flex h-full items-center justify-center text-center text-sm text-slate-300">
                   Bài học này chưa có video.
@@ -288,6 +271,7 @@ export default function LearningPage({
                     href={`/student/courses/${courseId}`}
                     className="mt-6 inline-flex items-center rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
                   >
+
                     Quay lại trang chi tiết khóa học
                   </Link>
                 </div>
@@ -357,7 +341,7 @@ export default function LearningPage({
                   return (
                     <Link
                       key={`${lesson.title}-${index}`}
-                      href={`/learn/${course?._id}/${index}`}
+                      href={`/learn/${course?._id}/${lesson.id ?? index}`}
                       className={`block rounded-[24px] border px-4 py-4 transition ${
                         isActive
                           ? "border-blue-200 bg-[linear-gradient(135deg,#eff6ff_0%,#eef2ff_100%)] text-blue-700 shadow-[0_18px_40px_-30px_rgba(37,99,235,0.45)]"

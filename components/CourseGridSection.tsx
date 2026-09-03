@@ -1,5 +1,5 @@
 import type { ICourse } from "@/typing/Courses";
-import type { StudentCourse } from "@/lib/course-marketplace";
+import type { StudentCourse } from "@/typing";
 import { CourseCard } from "./CourseCard";
 
 export default function CourseGridSection({

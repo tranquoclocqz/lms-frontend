@@ -1,4 +1,4 @@
-import type { StudentCourse } from "@/lib/course-marketplace";
+import type { StudentCourse } from "@/typing";
 import { demoCourses, getDemoCourseById } from "@/lib/ui-demo-data";
 
 type GetCoursesOptions = {

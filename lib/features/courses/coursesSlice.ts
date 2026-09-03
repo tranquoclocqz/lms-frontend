@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import type { StudentCourse } from "@/lib/course-marketplace";
+import type { StudentCourse } from "@/typing";
 
 type CoursesState = {
   items: StudentCourse[];

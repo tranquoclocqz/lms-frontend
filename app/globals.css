@@ -15,6 +15,27 @@ body {
   color: #020617;
 }
 
+@keyframes lesson-video-watermark-drift {
+  0%,
+  100% {
+    transform: translate(8%, 10%);
+  }
+  25% {
+    transform: translate(610%, 30%);
+  }
+  50% {
+    transform: translate(420%, 760%);
+  }
+  75% {
+    transform: translate(12%, 650%);
+  }
+}
+
+.lesson-video-watermark {
+  animation: lesson-video-watermark-drift 17s linear infinite alternate;
+  opacity: 0.42;
+}
+
 code,
 pre,
 kbd,

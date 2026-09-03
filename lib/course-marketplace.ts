@@ -1,32 +1,4 @@
-export type CourseLevel = "Beginner" | "Intermediate" | "Advanced";
-
-export type Lesson = {
-  title: string;
-  description?: string;
-  videoSource?: "local" | "bunny";
-  videoUrl?: string;
-  duration?: string;
-  isFreePreview?: boolean;
-  order: number;
-};
-
-export type StudentCourse = {
-  _id: string;
-  title: string;
-  shortDescription?: string;
-  description?: string;
-  thumbnailUrl?: string;
-  authorName?: string;
-  category?: string;
-  level?: CourseLevel;
-  language?: string;
-  price?: number;
-  originalPrice?: number;
-  discountPrice?: number;
-  status?: "Draft" | "Published";
-  lessons?: Lesson[];
-  createdAt?: string;
-};
+import type { CourseLevel, CourseLesson, StudentCourse } from "@/typing";
 
 const FALLBACK_RATING = "4.8";
 
@@ -71,7 +43,7 @@ export function formatPriceVnd(price?: number) {
   return `${Math.round(price).toLocaleString("vi-VN")}đ`;
 }
 
-export function getTotalDuration(lessons: Lesson[]) {
+export function getTotalDuration(lessons: CourseLesson[]) {
   const totalSeconds = lessons.reduce((sum, lesson) => {
     return sum + parseLessonDurationToSeconds(lesson.duration);
   }, 0);
