@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { demoCourses, getDemoCourseById } from "@/lib/ui-demo-data";
-import type { CoursePayload, CourseStatus } from "@/typing";
+import type { CoursePayload } from "@/typing";
 
 function sanitizeLessons(lessons: CoursePayload["lessons"] = []) {
   return lessons
@@ -25,28 +24,16 @@ export async function GET(request: NextRequest) {
   try {
     const courseId = request.nextUrl.searchParams.get("id");
     const scope = request.nextUrl.searchParams.get("scope");
+    void scope;
 
     if (courseId) {
-      const course = getDemoCourseById(courseId);
-
-      if (!course) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: "Không tìm thấy khóa học",
-          },
-          { status: 404 },
-        );
-      }
-
-      return NextResponse.json({
-        success: true,
-        course,
-        data: course,
-      });
+      return NextResponse.json(
+        { success: false, message: "Không tìm thấy khóa học" },
+        { status: 404 },
+      );
     }
 
-    const courses = demoCourses.filter((course) => scope !== "public" || course.status === "Published");
+    const courses: CoursePayload[] = [];
 
     return NextResponse.json({
       success: true,

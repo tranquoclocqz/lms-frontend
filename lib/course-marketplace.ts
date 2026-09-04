@@ -45,54 +45,31 @@ export function formatPriceVnd(price?: number) {
 
 export function getTotalDuration(lessons: CourseLesson[]) {
   const totalSeconds = lessons.reduce((sum, lesson) => {
-    return sum + parseLessonDurationToSeconds(lesson.duration);
+    return sum + (lesson.duration ?? 0);
   }, 0);
-
+  
   if (totalSeconds <= 0) {
     return "Tự học linh hoạt";
   }
 
+  return getDurationString(totalSeconds);
+}
+
+export function getDurationString(totalSeconds: number) {
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
 
   if (hours > 0) {
     if (minutes === 0) {
-      return `${hours}h`;
+      return `${hours} giờ`;
     }
 
-    return `${hours}h ${minutes}m`;
+    return `${hours} giờ ${minutes} phút`;
   }
-
-  return `${minutes}m`;
-}
-
-function parseLessonDurationToSeconds(duration?: string) {
-  const value = duration?.trim() || "";
-
-  if (!value) {
-    return 0;
+  if (minutes === 0) {
+    return `${totalSeconds} giây`;
   }
-
-  if (/^\d+$/.test(value)) {
-    return Number(value) * 60;
-  }
-
-  const parts = value
-    .split(":")
-    .map((part) => Number(part))
-    .filter((part) => Number.isFinite(part));
-
-  if (parts.length === 2) {
-    const [minutes, seconds] = parts;
-    return minutes * 60 + seconds;
-  }
-
-  if (parts.length === 3) {
-    const [hours, minutes, seconds] = parts;
-    return hours * 3600 + minutes * 60 + seconds;
-  }
-
-  return 0;
+  return `${minutes} phút`;
 }
 
 export function getCourseVisualTheme(seed: string) {

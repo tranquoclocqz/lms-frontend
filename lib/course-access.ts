@@ -1,5 +1,4 @@
-import { normalizeEmail, isTeacherOrAdmin } from "@/lib/auth";
-import { getDemoCourseById } from "@/lib/ui-demo-data";
+import { normalizeEmail } from "@/lib/auth";
 
 type AccessArgs = {
   courseId: string;
@@ -25,59 +24,15 @@ export function isCourseFree(course?: {
 }
 
 export async function canAccessCourse({ courseId, userEmail }: AccessArgs) {
-  const normalizedEmail = normalizeEmail(userEmail);
-  const course = getDemoCourseById(courseId);
-
-  if (!course) {
-    return {
-      canAccess: false,
-      reason: "not_found" as const,
-      course: null,
-      enrollment: null,
-      paidOrder: null,
-    };
-  }
-
-  if (isTeacherOrAdmin(normalizedEmail)) {
-    return {
-      canAccess: true,
-      reason: "teacher" as const,
-      course,
-      enrollment: null,
-      paidOrder: null,
-    };
-  }
-
-  if (isCourseFree(course)) {
-    return {
-      canAccess: true,
-      reason: "free_course" as const,
-      course,
-      enrollment: null,
-      paidOrder: null,
-    };
-  }
-
-  if (!normalizedEmail) {
-    return {
-      canAccess: false,
-      reason: "unauthenticated" as const,
-      course,
-      enrollment: null,
-      paidOrder: null,
-    };
-  }
+  void courseId;
+  void userEmail;
+  const course = null;
 
   return {
-    canAccess: true,
-    reason: "enrollment" as const,
+    canAccess: false,
+    reason: "not_found" as const,
     course,
-    enrollment: {
-      courseId,
-      studentEmail: normalizedEmail,
-      status: "active",
-      progress: 0,
-    },
+    enrollment: null,
     paidOrder: null,
   };
 }
@@ -90,10 +45,6 @@ export async function ensureTrackingEnrollmentForAccessibleCourse({
 
   if (!access.canAccess || !access.course || !normalizeEmail(userEmail)) {
     return access.enrollment || null;
-  }
-
-  if (access.reason === "teacher") {
-    return null;
   }
 
   return access.enrollment || null;

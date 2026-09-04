@@ -1,26 +1,11 @@
 import { NextResponse } from "next/server";
-import { demoActivationCodes } from "@/lib/ui-demo-data";
 import type { CreateActivationCodesPayload } from "@/typing";
-
-function buildDemoActivationCodes(courseId: string, quantity: number) {
-  const prefix = `BRAIN-${String(demoActivationCodes.length + 1).padStart(3, "0")}`;
-
-  return Array.from({ length: quantity }, (_, index) => ({
-    _id: `code-${Date.now()}-${index + 1}`,
-    code: `${prefix}-${index + 1}`,
-    courseId,
-    isUsed: false,
-    usedBy: null,
-    usedAt: null,
-    createdAt: new Date().toISOString(),
-  }));
-}
 
 export async function GET() {
   return NextResponse.json({
     success: true,
-    activationCodes: demoActivationCodes,
-    data: demoActivationCodes,
+    activationCodes: [],
+    data: [],
   });
 }
 
@@ -50,16 +35,12 @@ export async function POST(request: Request) {
       );
     }
 
-    const createdActivationCodes = buildDemoActivationCodes(courseId, quantity);
-
     return NextResponse.json(
       {
-        success: true,
-        message: "Đã tạo mã kích hoạt",
-        activationCodes: createdActivationCodes,
-        data: createdActivationCodes,
+        success: false,
+        message: "Chức năng tạo mã kích hoạt chưa được cấu hình",
       },
-      { status: 201 },
+      { status: 501 },
     );
   } catch (error) {
     console.error("CREATE ACTIVATION CODES ERROR:", error);

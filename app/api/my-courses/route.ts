@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { demoMyCourses } from "@/lib/ui-demo-data";
+import type { MyCourseItem } from "@/typing";
 
 function isValidObjectId(value: string) {
   return /^[a-fA-F0-9]{24}$/.test(value);
@@ -18,9 +18,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const courses = courseId
-      ? demoMyCourses.filter((item) => item.course._id === courseId)
-      : demoMyCourses;
+    const courses: MyCourseItem[] = [];
 
     return NextResponse.json({
       success: true,

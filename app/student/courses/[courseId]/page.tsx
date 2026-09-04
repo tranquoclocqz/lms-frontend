@@ -15,7 +15,7 @@ function normalizeLessons(lessons: ILesson[]) {
     description: lesson.description || "",
     videoSource: "local" as const,
     videoUrl: lesson.video_url || "",
-    duration: String(lesson.duration_seconds ?? ""),
+    duration: (lesson.duration_seconds ?? 0),
     isFreePreview: lesson.is_preview === 1,
     order: lesson.sort_order ?? index + 1,
   }));
@@ -71,6 +71,7 @@ async function getCourseWithLessons(courseId: string) {
         title: coursePayload.data.title,
         description: coursePayload.data.description || "",
         thumbnailUrl: coursePayload.data.thumbnail_url || undefined,
+        meta_data: coursePayload.data.meta_data || undefined,
         lessons: normalizeLessons(lessonsPayload.data || []),
       } satisfies StudentCourse,
       error: "",

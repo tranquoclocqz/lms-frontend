@@ -1,11 +1,6 @@
 import { StudentCourseCatalog } from "@/components/StudentCourseCatalog";
-import type { StudentCourse } from "@/typing";
-import { demoCourses } from "@/lib/ui-demo-data";
-import { ICourse } from "@/typing/Courses";
 
 export default function StudentCoursesPage() {
-  const courses: ICourse[] = [];
-
   return (
     <StudentCourseCatalog
       initialError={null}

@@ -4,14 +4,14 @@ export interface ILesson {
   title: string;
   description: string;
   video_url: string;
-  duration_seconds?: string | number;
+  duration_seconds?: number;
   sort_order?: number;
   is_preview?: number;
   created_at?: string;
 }
 
 export interface ILessonResponse {
-  success?: boolean;
-  data?: ILesson;
-  message?: string;
+  status: number;
+  data: ILesson[];
+  message: string;
 }

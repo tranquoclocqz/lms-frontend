@@ -1,27 +1,18 @@
 import { NextResponse } from "next/server";
-import { demoTeacherSettings } from "@/lib/ui-demo-data";
 
 export async function GET() {
   return NextResponse.json({
-    success: true,
-    settings: demoTeacherSettings,
-    data: demoTeacherSettings,
+    success: false,
+    message: "Cài đặt chưa được cấu hình",
   });
 }
 
 export async function PATCH(request: Request) {
   try {
-    const body = await request.json();
-    const settings = {
-      ...demoTeacherSettings,
-      ...body,
-    };
-
+    await request.json();
     return NextResponse.json({
-      success: true,
-      message: "Đã lưu cài đặt",
-      settings,
-      data: settings,
+      success: false,
+      message: "Cài đặt chưa được cấu hình",
     });
   } catch (error) {
     console.error("UPDATE SETTINGS ERROR:", error);

@@ -24,4 +24,9 @@ export interface ICourse {
   updated_at?: string;
   user?: IUser;
   category?: ICategory;
+  meta_data?: MetaData;
+}
+
+export interface MetaData {
+  outcome?: string[]
 }

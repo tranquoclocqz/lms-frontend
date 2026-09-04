@@ -1,25 +1,13 @@
 import { NextResponse } from "next/server";
 
-export async function POST(request: Request) {
+export async function POST() {
   try {
-    const body = await request.json();
-    const orderId = `order-${Date.now()}`;
-
     return NextResponse.json(
       {
-        success: true,
-        order: {
-          _id: orderId,
-          courseId: body?.courseId || "course-1",
-          status: "pending",
-          amount: 1290000,
-          studentEmail: body?.studentEmail || "demo@braincourse.local",
-        },
-        orderId,
-        orderCode: `BC-${orderId.toUpperCase()}`,
-        checkoutUrl: `/student/checkout/${orderId}`,
+        success: false,
+        message: "Chức năng tạo đơn hàng chưa được cấu hình",
       },
-      { status: 201 },
+      { status: 501 },
     );
   } catch (error) {
     console.error("ORDER ERROR:", error);

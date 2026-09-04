@@ -11,17 +11,18 @@ export const coursesApi = api.injectEndpoints({
         params: params ?? undefined,
       }),
     }),
-    getLesson: builder.query<ILessonResponse, string>({
-      query: (lessonId) => ({
-        url: `/lessons/${encodeURIComponent(lessonId)}`,
+    getLessons: builder.query<ILessonResponse, string>({
+      query: (courseId) => ({
+        url: `/courses/lessons/${encodeURIComponent(courseId)}`,
         method: "GET",
       }),
-      transformResponse: (lesson: ILesson): ILessonResponse => ({
-        success: true,
-        data: lesson,
+      transformResponse: (lessons: ILesson[]): ILessonResponse => ({
+        status: 1,
+        data: lessons,
+        message: "Success",
       }),
     }),
   }),
 });
 
-export const { useGetCoursesQuery, useGetLessonQuery } = coursesApi;
+export const { useGetCoursesQuery, useGetLessonsQuery } = coursesApi;

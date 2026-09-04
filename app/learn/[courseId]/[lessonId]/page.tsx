@@ -3,9 +3,8 @@
 import Link from "next/link";
 import type { SVGProps } from "react";
 import { useEffect, useMemo, useState } from "react";
-import { resolveLessonIndex } from "@/lib/course-lessons";
-import { getDemoCourseById } from "@/lib/ui-demo-data";
-import { useGetLessonQuery } from "@/lib/redux/coursesApi";
+import { StudentShell } from "@/components/StudentShell";
+import { useGetLessonsQuery } from "@/lib/redux/coursesApi";
 import type { StudentCourse } from "@/typing";
 import { HlsLessonVideo } from "./HlsLessonVideo";
 
@@ -24,12 +23,11 @@ export default function LearningPage({
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const teacherMode = false;
   const {
-    data: lessonResponse,
-    isLoading: isLessonLoading,
-    isError: isLessonError,
-    refetch: refetchLesson,
-  } = useGetLessonQuery(lessonId, { skip: !lessonId });
-  const lessonDetail = lessonResponse?.data;
+    data: lessonsResponse,
+    isLoading: isLessonsLoading,
+    isError: isLessonsError,
+    refetch: refetchLessons,
+  } = useGetLessonsQuery(courseId, { skip: !courseId });
 
   useEffect(() => {
     let mounted = true;
@@ -43,9 +41,8 @@ export default function LearningPage({
 
       setCourseId(resolvedParams.courseId);
       setLessonId(resolvedParams.lessonId);
-      const demoCourse = getDemoCourseById(resolvedParams.courseId);
-      setCourse(demoCourse);
-      setError(demoCourse ? "" : "Không tìm thấy khóa học");
+      setCourse({ _id: resolvedParams.courseId, title: "", lessons: [] });
+      setError("");
       setLoading(false);
     }
 
@@ -90,31 +87,26 @@ export default function LearningPage({
     };
   }, [courseId, teacherMode]);
 
-  const lessons = useMemo(() => course?.lessons || [], [course?.lessons]);
-  const lessonIndex = useMemo(
-    () => resolveLessonIndex(lessons, lessonId),
-    [lessonId, lessons],
+  const lessons = useMemo(
+    () =>
+      lessonsResponse?.data?.map((lesson, index) => ({
+        id: lesson.id,
+        title: lesson.title,
+        description: lesson.description,
+        videoSource: "local" as const,
+        videoUrl: lesson.video_url,
+        duration: String(lesson.duration_seconds ?? ""),
+        isFreePreview: lesson.is_preview === 1,
+        order: lesson.sort_order ?? index + 1,
+      })) || [],
+    [lessonsResponse?.data],
   );
+  const lessonIndex = lessons.findIndex((lesson) => lesson.id === Number(lessonId));
   const fallbackLesson =
     Number.isInteger(lessonIndex) && lessonIndex >= 0
       ? lessons[lessonIndex]
       : undefined;
-  const activeLesson = useMemo(
-    () =>
-      lessonDetail
-        ? {
-            id: lessonDetail.id,
-            title: lessonDetail.title,
-            description: lessonDetail.description,
-            videoSource: "local" as const,
-            videoUrl: lessonDetail.video_url,
-            duration: String(lessonDetail.duration_seconds ?? ""),
-            isFreePreview: lessonDetail.is_preview === 1,
-            order: lessonDetail.sort_order ?? lessonIndex + 1,
-          }
-        : fallbackLesson,
-    [fallbackLesson, lessonDetail, lessonIndex],
-  );
+  const activeLesson = fallbackLesson;
   const hasCourseAccess = teacherMode || isEnrolled;
   const isAccessReady = teacherMode || accessChecked;
   const canWatchActiveLesson = Boolean(
@@ -131,7 +123,7 @@ export default function LearningPage({
       return "Không tìm thấy khóa học";
     }
 
-    if (!isLessonLoading && isLessonError) {
+    if (!isLessonsLoading && isLessonsError) {
       return "Không thể tải bài học";
     }
 
@@ -148,13 +140,20 @@ export default function LearningPage({
     }
 
     return "";
-  }, [activeLesson, course, error, isLessonError, isLessonLoading, lessonIndex, loading]);
+  }, [activeLesson, course, error, isLessonsError, isLessonsLoading, lessonIndex, loading]);
 
-  if (loading || isLessonLoading || !isAccessReady) {
+  if (loading || isLessonsLoading || !isAccessReady) {
     return (
-      <div className="min-h-screen bg-[#f5f7fb]">
-        <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <main className="space-y-6 p-6">
+      <StudentShell
+        title={course?.title || "Bài học"}
+        description="Đang chuẩn bị không gian học tập của bạn."
+        activeHref="/student/courses"
+        hideHero
+        hideSidebar
+        contentWidth="wide"
+      >
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <main className="space-y-6">
             <div className="h-4 w-24 animate-pulse rounded bg-slate-200" />
             <div className="h-10 w-2/3 animate-pulse rounded bg-slate-200" />
             <div className="aspect-video animate-pulse rounded-[28px] bg-slate-200" />
@@ -164,7 +163,7 @@ export default function LearningPage({
               <div className="mt-2 h-4 w-5/6 animate-pulse rounded bg-slate-100" />
             </div>
           </main>
-          <aside className="border-l border-slate-200 bg-white p-6">
+          <aside className="rounded-[28px] bg-white p-6">
             <div className="h-8 w-40 animate-pulse rounded bg-slate-200" />
             <div className="mt-6 space-y-3">
               {Array.from({ length: 5 }).map((_, index) => (
@@ -176,20 +175,27 @@ export default function LearningPage({
             </div>
           </aside>
         </div>
-      </div>
+      </StudentShell>
     );
   }
 
   if (derivedError) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f5f7fb] px-4">
+      <StudentShell
+        title={course?.title || "Bài học"}
+        description="Không thể mở nội dung học tập lúc này."
+        activeHref="/student/courses"
+        hideHero
+        hideSidebar
+      >
+        <div className="flex min-h-[50vh] items-center justify-center px-4">
         <div className="w-full max-w-xl rounded-[32px] border border-slate-200 bg-white p-8 text-center shadow-[0_24px_64px_-42px_rgba(15,23,42,0.22)]">
           <h1 className="text-2xl font-semibold text-slate-950">Không thể tải bài học</h1>
           <p className="mt-3 text-sm text-slate-500">{derivedError}</p>
           <div className="mt-6 flex justify-center gap-3">
             <button
               type="button"
-              onClick={() => void refetchLesson()}
+              onClick={() => void refetchLessons()}
               className="rounded-full bg-slate-950 px-5 py-3 text-sm font-medium text-white transition hover:bg-blue-700"
             >
               Thử lại
@@ -202,44 +208,36 @@ export default function LearningPage({
             </Link>
           </div>
         </div>
-      </div>
+        </div>
+      </StudentShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f7fb] text-slate-950">
-      <div
-        className={`grid min-h-screen grid-cols-1 ${
-          sidebarExpanded
-            ? "lg:grid-cols-[minmax(0,1fr)_360px]"
-            : "lg:grid-cols-[minmax(0,1fr)_92px]"
-        }`}
-      >
-        <main className="min-w-0 p-4 sm:p-6 lg:p-8">
+    <StudentShell
+      title={course?.title || "Bài học"}
+      description="Tiếp tục bài học và theo dõi tiến trình của bạn."
+      activeHref="/student/courses"
+      hideHero
+      hideSidebar
+      contentWidth="wide"
+    >
+      <div className="text-slate-950">
+        <div
+          className={`grid min-h-screen grid-cols-1 gap-6 ${
+            sidebarExpanded
+              ? "lg:grid-cols-[minmax(0,1fr)_360px]"
+              : "lg:grid-cols-[minmax(0,1fr)_92px]"
+          }`}
+        >
+        <main className="min-w-0">
           <div className="rounded-[32px] border border-slate-200 bg-white p-5 shadow-[0_22px_60px_-42px_rgba(15,23,42,0.2)] sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
-                  Đang học
-                </p>
                 <h1 className="mt-2 text-2xl font-bold leading-tight sm:text-3xl">
                   {activeLesson?.title}
                 </h1>
                 <p className="mt-2 text-sm text-slate-500">{course?.title}</p>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <Link
-                  href={`/student/courses/${courseId}`}
-                  className="inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-                >
-                  Chi tiết khóa học
-                </Link>
-                <Link
-                  href="/my-courses"
-                  className="inline-flex items-center rounded-full bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
-                >
-                  Khóa học của tôi
-                </Link>
               </div>
             </div>
           </div>
@@ -278,28 +276,9 @@ export default function LearningPage({
               )}
             </div>
           </div>
-
-          <div className="mt-6 rounded-[32px] border border-slate-200 bg-white p-5 shadow-[0_22px_60px_-42px_rgba(15,23,42,0.2)] sm:p-6">
-            <h2 className="text-lg font-semibold sm:text-xl">Về bài học này</h2>
-            <p className="mt-3 text-sm leading-7 text-slate-600">
-              {canWatchActiveLesson
-                ? activeLesson?.description || "Chưa có mô tả cho bài học này."
-                : "Bài học này cần mua khóa học hoặc kích hoạt mã để xem."}
-            </p>
-
-            <div className="mt-5 flex flex-wrap gap-3 text-sm text-slate-500">
-              <span>Thời lượng: {activeLesson?.duration || "--:--"}</span>
-              <span>{lessons.length} bài học trong khóa học này</span>
-              {activeLesson?.isFreePreview ? (
-                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
-                  Học thử
-                </span>
-              ) : null}
-            </div>
-          </div>
         </main>
 
-        <aside className="border-t border-slate-200 bg-white lg:border-l lg:border-t-0">
+        <aside className="rounded-[28px] border border-slate-200 bg-white">
           <div className="flex items-center justify-between border-b border-slate-200 px-4 py-4 sm:px-5">
             {sidebarExpanded ? (
               <div className="min-w-0">
@@ -318,20 +297,18 @@ export default function LearningPage({
 
             <button
               type="button"
-              onClick={() => setSidebarExpanded((prev) => !prev)}
+              onClick={() => setSidebarExpanded((previous) => !previous)}
               className="ml-3 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50"
               aria-label={sidebarExpanded ? "Thu gọn danh sách bài học" : "Mở rộng danh sách bài học"}
             >
-              {sidebarExpanded ? (
-                <ChevronRightIcon className="h-4 w-4 rotate-180" />
-              ) : (
-                <ChevronRightIcon className="h-4 w-4" />
-              )}
+              <ChevronRightIcon
+                className={`h-4 w-4 ${sidebarExpanded ? "rotate-180" : ""}`}
+              />
             </button>
           </div>
 
           {sidebarExpanded ? (
-            <div className="h-[calc(100vh-89px)] overflow-y-auto px-3 py-3 sm:px-4">
+            <div className="h-[calc(100vh-220px)] overflow-y-auto px-3 py-3 sm:px-4">
               <div className="space-y-2">
                 {lessons.map((lesson, index) => {
                   const isActive = index === lessonIndex;
@@ -368,25 +345,8 @@ export default function LearningPage({
                             >
                               {lesson.title}
                             </p>
-                            {lesson.isFreePreview ? (
-                              <span
-                                className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] ${
-                                  isActive
-                                    ? "bg-white text-blue-700"
-                                    : "border border-emerald-200 bg-emerald-50 text-emerald-700"
-                                }`}
-                              >
-                                Học thử
-                              </span>
-                            ) : null}
                             {!canWatchLesson ? (
-                              <span
-                                className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] ${
-                                  isActive
-                                    ? "bg-white text-blue-700"
-                                    : "border border-amber-200 bg-amber-50 text-amber-700"
-                                }`}
-                              >
+                              <span className="shrink-0 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-700">
                                 Khóa
                               </span>
                             ) : null}
@@ -396,11 +356,7 @@ export default function LearningPage({
                               className={`truncate text-xs ${
                                 isActive ? "text-blue-600" : "text-slate-500"
                               }`}
-                              title={
-                                canWatchLesson
-                                  ? lesson.description || "Chưa có mô tả cho bài học này."
-                                  : "Cần mua khóa học hoặc kích hoạt mã"
-                              }
+                              title={lesson.description || "Chưa có mô tả cho bài học này."}
                             >
                               {canWatchLesson
                                 ? lesson.description || "Chưa có mô tả cho bài học này."
@@ -422,15 +378,16 @@ export default function LearningPage({
               </div>
             </div>
           ) : (
-            <div className="flex h-[calc(100vh-89px)] items-start justify-center px-3 py-4">
+            <div className="flex h-[calc(100vh-220px)] items-start justify-center px-3 py-4">
               <div className="text-xs font-medium tracking-[0.18em] text-slate-400 [writing-mode:vertical-rl] [text-orientation:mixed]">
                 {lessons.length} bài học
               </div>
             </div>
           )}
         </aside>
+        </div>
       </div>
-    </div>
+    </StudentShell>
   );
 }
 

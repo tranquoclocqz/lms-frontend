@@ -1,19 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { demoEnrollments } from "@/lib/ui-demo-data";
+import type { EnrollmentItem } from "@/typing";
 
 export async function GET(request: NextRequest) {
   try {
-    const search = request.nextUrl.searchParams.get("search")?.trim() || "";
-    const filtered = demoEnrollments.filter((enrollment) => {
-      if (!search) {
-        return true;
-      }
-
-      return [enrollment.studentName, enrollment.studentEmail, enrollment.status]
-        .join(" ")
-        .toLowerCase()
-        .includes(search.toLowerCase());
-    });
+    request.nextUrl.searchParams.get("search");
+    const filtered: EnrollmentItem[] = [];
 
     return NextResponse.json({
       success: true,
@@ -42,25 +33,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const createdEnrollment = {
-      _id: `enr-${Date.now()}`,
-      studentName: body?.studentName || "Học viên demo",
-      studentEmail: body?.studentEmail || "demo@braincourse.local",
-      courseId: body?.courseId || "course-1",
-      status: body?.status || "active",
-      progress: body?.progress || 0,
-      enrolledAt: new Date().toISOString(),
-      completedAt: null,
-    };
-
+    await request.json();
     return NextResponse.json(
-      {
-        success: true,
-        message: "Thêm học viên thành công",
-        enrollment: createdEnrollment,
-      },
-      { status: 201 },
+      { success: false, message: "Chức năng ghi danh chưa được cấu hình" },
+      { status: 501 },
     );
   } catch (error) {
     console.error("CREATE ENROLLMENT ERROR:", error);

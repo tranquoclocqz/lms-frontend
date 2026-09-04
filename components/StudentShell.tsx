@@ -16,6 +16,7 @@ type StudentShellProps = {
   actions?: ReactNode;
   spotlight?: ReactNode;
   hideHero?: boolean;
+  hideSidebar?: boolean;
   contentWidth?: "default" | "wide";
   children: ReactNode;
 };
@@ -48,6 +49,7 @@ export function StudentShell({
   actions,
   spotlight,
   hideHero = false,
+  hideSidebar = false,
   contentWidth = "default",
   children,
 }: StudentShellProps) {
@@ -65,25 +67,19 @@ export function StudentShell({
   return (
     <div className="min-h-screen bg-[#f5f7fb] text-slate-950">
       <div className="flex min-h-screen w-full">
-        <StudentSidebar
-          navItems={navItems}
-          activeHref={resolvedActiveHref}
-          isOpen={mobileSidebarOpen}
-          onClose={() => setMobileSidebarOpen(false)}
-          teacherMode={teacherMode}
-        />
-
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="sticky top-0 z-30 border-b border-slate-200/70 bg-[#f5f7fb]/95 backdrop-blur">
             <div className="flex items-center gap-3 px-4 py-4 sm:px-6 lg:px-8">
-              <button
-                type="button"
-                onClick={() => setMobileSidebarOpen(true)}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:text-slate-950 lg:hidden"
-                aria-label="Mở menu điều hướng"
-              >
-                <MenuIcon className="h-5 w-5" />
-              </button>
+              {hideSidebar ? null : (
+                <button
+                  type="button"
+                  onClick={() => setMobileSidebarOpen(true)}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:text-slate-950 lg:hidden"
+                  aria-label="Mở menu điều hướng"
+                >
+                  <MenuIcon className="h-5 w-5" />
+                </button>
+              )}
 
               {search ? (
                 <label className="group flex min-w-0 flex-1 items-center gap-3 rounded-[24px] border border-slate-200 bg-white px-4 py-3 shadow-[0_20px_45px_-34px_rgba(15,23,42,0.18)] transition focus-within:border-blue-300 focus-within:ring-4 focus-within:ring-blue-100">

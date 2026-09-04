@@ -3,7 +3,6 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ChangeEvent, useEffect, useState } from "react";
-import { demoCourses } from "@/lib/ui-demo-data";
 import type {
   CourseFormState,
   CourseLesson,
@@ -11,7 +10,6 @@ import type {
   CourseResponseShape,
   CourseStatus,
   LessonDraft,
-  VideoSource,
 } from "@/typing";
 
 const tabs = ["Basic Info", "Curriculum", "Publish"] as const;
@@ -35,7 +33,7 @@ const initialCourseForm: CourseFormState = {
   title: "",
   shortDescription: "",
   description: "",
-  authorName: "Cô Mai UI UX",
+  authorName: "",
   category: "Development",
   level: "Beginner",
   language: "English",
@@ -50,7 +48,7 @@ function normalizeCourseForm(course?: CoursePayload): CourseFormState {
     title: course?.title || "",
     shortDescription: course?.shortDescription || "",
     description: course?.description || "",
-    authorName: course?.authorName || "Cô Mai UI UX",
+    authorName: course?.authorName || "",
     category: course?.category || "Development",
     level: course?.level || "Beginner",
     language: course?.language || "English",
@@ -113,6 +111,7 @@ export function CourseEditor({
       return;
     }
 
+    const resolvedCourseId = courseId;
     let mounted = true;
 
     async function fetchCourse() {
@@ -120,18 +119,19 @@ export function CourseEditor({
         setIsLoadingCourse(true);
         setLoadError("");
 
-        const demoCourse = demoCourses.find((item) => item._id === courseId);
+        const response = await fetch(`/api/courses/${encodeURIComponent(resolvedCourseId)}`);
+        const result = (await response.json()) as CourseResponseShape;
 
-        if (!demoCourse) {
-          throw new Error("Không thể tải khóa học");
+        if (!response.ok || !result.course) {
+          throw new Error(result.message || "Không thể tải khóa học");
         }
 
         if (!mounted) {
           return;
         }
 
-        setCourse(normalizeCourseForm(demoCourse as CoursePayload));
-        setLessons(normalizeLessons(demoCourse.lessons as CourseLesson[]));
+        setCourse(normalizeCourseForm(result.course as CoursePayload));
+        setLessons(normalizeLessons((result.course as CoursePayload).lessons));
       } catch (error) {
         console.error(error);
 
@@ -264,32 +264,7 @@ export function CourseEditor({
   };
 
   const saveCourse = async (status: CourseStatus) => {
-    const finalPrice = course.discountPrice.trim();
-
-    const payload = {
-      title: course.title.trim(),
-      shortDescription: course.shortDescription.trim(),
-      description: course.description.trim(),
-      authorName: course.authorName.trim(),
-      thumbnailUrl: course.thumbnailUrl,
-      category: course.category,
-      level: course.level,
-      language: course.language,
-      price: finalPrice,
-      originalPrice: course.originalPrice.trim(),
-      discountPrice: course.discountPrice.trim(),
-      status,
-      lessons: lessons.map((lesson, index) => ({
-        title: lesson.title?.trim() || "",
-        description: lesson.description?.trim() || "",
-        videoSource: lesson.videoSource,
-        videoUrl: lesson.videoUrl,
-        duration: lesson.duration?.trim() || "",
-        isFreePreview: lesson.isFreePreview,
-        order: index + 1,
-      })),
-    };
-
+    void status;
     router.push("/courses");
     router.refresh();
   };

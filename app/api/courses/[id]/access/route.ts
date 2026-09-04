@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { getDemoCourseById } from "@/lib/ui-demo-data";
 import type { CourseAccessRouteContext } from "@/typing";
 
 export async function GET(
@@ -8,27 +7,11 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const course = getDemoCourseById(id);
-
-    if (!course) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Không tìm thấy khóa học",
-        },
-        { status: 404 },
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      canAccess: course.status === "Published",
-      reason: "demo-public",
-      isFreeCourse: course.price === 0 || Boolean(course.lessons?.some((lesson) => lesson.isFreePreview)),
-      hasEnrollment: false,
-      hasPaidOrder: false,
-      isTeacherOrAdmin: false,
-    });
+    void id;
+    return NextResponse.json(
+      { success: false, message: "Khóa học không tồn tại" },
+      { status: 404 },
+    );
   } catch (error) {
     console.error("GET COURSE ACCESS ERROR:", error);
 

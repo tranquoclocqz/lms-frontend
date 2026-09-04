@@ -61,9 +61,6 @@ export function StudentCourseCatalog({
     >
       {layoutVariant === "discover" ? (
         <>
-          <KnowledgeNetworkHero />
-          <CategoryPillSection search={search} onSelect={setSearch} />
-
           {error ? (
             <section className="rounded-[32px] border border-rose-200 bg-white p-10 text-center shadow-[0_24px_60px_-42px_rgba(225,29,72,0.25)]">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-rose-50 text-rose-600">
@@ -76,13 +73,6 @@ export function StudentCourseCatalog({
             </section>
           ) : (
             <>
-              <CourseGridSection
-                eyebrow="Khóa học nổi bật"
-                title="Khóa học nổi bật"
-                description="Những khóa học được học viên quan tâm nhiều nhất."
-                courses={courses}
-              />
-
               <CourseGridSection
                 eyebrow="Khóa học mới"
                 title="Nội dung mới được cập nhật"

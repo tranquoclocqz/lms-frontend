@@ -1,5 +1,5 @@
 import type { ReactNode, SVGProps } from "react";
-import type { ICourse } from "@/typing/Courses";
+import type { ICourse, MetaData } from "@/typing/Courses";
 import type { ILesson } from "@/typing/lesson";
 
 export type { ICourse } from "@/typing/Courses";
@@ -16,7 +16,7 @@ export type CourseLesson = {
   description?: string;
   videoSource?: VideoSource;
   videoUrl?: string;
-  duration?: string;
+  duration?: number;
   isFreePreview?: boolean;
   order: number;
 };
@@ -37,6 +37,7 @@ export type StudentCourse = {
   status?: CourseStatus;
   lessons?: CourseLesson[];
   createdAt?: string;
+  meta_data?: MetaData;
 };
 
 export type CourseDetailResponse = {
