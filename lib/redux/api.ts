@@ -5,9 +5,13 @@ import {
   type FetchArgs,
   type FetchBaseQueryError,
 } from "@reduxjs/toolkit/query/react";
+import {
+  clearAuthSession,
+  getStoredAccessToken,
+} from "@/lib/auth/session";
 
 type ApiEnvelope<T> = {
-  status: 0 | 1 | 401;
+  status: number;
   data: T | null;
   message: string;
 };
@@ -16,11 +20,9 @@ const rawBaseQuery = fetchBaseQuery({
   baseUrl: process.env.NEXT_PUBLIC_API_URL || "/api",
   credentials: "include",
   prepareHeaders: (headers) => {
-    if (typeof window !== "undefined") {
-      const token = window.localStorage.getItem("token");
-      if (token) {
-        headers.set("Authorization", `Bearer ${token}`);
-      }
+    const token = getStoredAccessToken();
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
     }
 
     return headers;
@@ -28,8 +30,9 @@ const rawBaseQuery = fetchBaseQuery({
 });
 
 function redirectToLogin() {
-  if (typeof window !== "undefined" && window.location.pathname !== "/sign-in") {
-    window.location.assign("/sign-in");
+  if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+    const next = `${window.location.pathname}${window.location.search}`;
+    window.location.assign(`/login?next=${encodeURIComponent(next)}`);
   }
 }
 
@@ -41,22 +44,21 @@ const baseQueryWithResponseHandling: BaseQueryFn<
   const result = await rawBaseQuery(args, api, extraOptions);
 
   if (result.error) {
-    const status = result.error.status;
-
-    if (status === 401) {
+    if (result.error.status === 401) {
+      clearAuthSession();
       redirectToLogin();
       return {
         error: {
           status: 401,
           data: { message: "Unauthorized" },
-        } as FetchBaseQueryError,
+        },
       };
     }
 
     return result;
   }
 
-  const payload = result.data as ApiEnvelope<unknown> | unknown | undefined;
+  const payload = result.data;
 
   if (payload && typeof payload === "object" && "status" in payload) {
     const envelope = payload as ApiEnvelope<unknown>;
@@ -68,12 +70,13 @@ const baseQueryWithResponseHandling: BaseQueryFn<
     }
 
     if (envelope.status === 401) {
+      clearAuthSession();
       redirectToLogin();
       return {
         error: {
           status: 401,
           data: envelope,
-        } as FetchBaseQueryError,
+        },
       };
     }
 
@@ -81,7 +84,7 @@ const baseQueryWithResponseHandling: BaseQueryFn<
       error: {
         status: envelope.status,
         data: envelope,
-      } as FetchBaseQueryError,
+      },
     };
   }
 

@@ -1,0 +1,19 @@
+tunnel: dev-tunnel
+# Thay đường dẫn bên dưới tới đúng file .json tạo ra ở Bước 2
+credentials-file: C:\Users\tranq\.cloudflared\30419153-6dc8-4daf-ae7f-103899f3f851.json
+
+ingress:
+  # Subdomain 1: api.loclaptrinh.com trỏ về port 8000
+  # - hostname: api.loclaptrinh.com
+  #   service: http://localhost:8000
+  #   originRequest:
+  #     httpHostHeader: api.loclaptrinh.com
+
+  # Subdomain 2: test.loclaptrinh.com trỏ về port 8000 (hoặc port khác tùy bạn)
+  - hostname: test.loclaptrinh.com
+    service: http://localhost:3000
+    originRequest:
+      httpHostHeader: test.loclaptrinh.com
+
+  # Dòng bắt buộc ở cuối file
+  - service: http_status:404

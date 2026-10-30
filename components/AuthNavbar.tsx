@@ -13,6 +13,7 @@ export function AuthNavbar() {
   const pathname = usePathname();
   const shouldHideNavbar =
     pathname === "/" ||
+    pathname === "/login" ||
     pathname === "/my-courses" ||
     pathname.startsWith("/student/") ||
     pathname.startsWith("/learn/");
@@ -58,7 +59,7 @@ export function AuthNavbar() {
             ))}
           </nav>
           <Link
-            href="/student/courses"
+            href="/login"
             className="inline-flex items-center rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
           >
             Đăng nhập
