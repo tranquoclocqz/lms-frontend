@@ -1,12 +1,12 @@
-import CourseDetailClient from "./CourseDetailClient";
-import type {
-  CourseDetailResponse,
-  CourseLessonsResponse,
-  ILesson,
-  StudentCourse,
-} from "@/typing";
+"use client";
 
-export const revalidate = 60;
+import CourseDetailClient from "./CourseDetailClient";
+import {
+  useGetCourseByIdQuery,
+  useGetLessonsQuery,
+} from "@/lib/redux/coursesApi";
+import type { ILesson, StudentCourse } from "@/typing";
+import { use } from "react";
 
 function normalizeLessons(lessons: ILesson[]) {
   return lessons.map((lesson, index) => ({
@@ -15,93 +15,68 @@ function normalizeLessons(lessons: ILesson[]) {
     description: lesson.description || "",
     videoSource: "local" as const,
     videoUrl: lesson.video_url || "",
-    duration: (lesson.duration_seconds ?? 0),
+    duration: lesson.duration_seconds ?? 0,
     isFreePreview: lesson.is_preview === 1,
     order: lesson.sort_order ?? index + 1,
   }));
 }
 
-function getApiUrl(path: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
-
-  if (!baseUrl) {
-    throw new Error("Thiếu biến môi trường NEXT_PUBLIC_API_URL");
-  }
-
-  return `${baseUrl}/${path}`;
-}
-
-async function getCourseWithLessons(courseId: string) {
-  const encodedCourseId = encodeURIComponent(courseId);
-
-  try {
-    const requestInit: RequestInit = {
-      headers: { Accept: "application/json" },
-      next: { revalidate },
-    };
-    const [courseResponse, lessonsResponse] = await Promise.all([
-      fetch(getApiUrl(`courses/${encodedCourseId}`), requestInit),
-      fetch(getApiUrl(`courses/lessons/${encodedCourseId}`), requestInit),
-    ]);
-
-    if (!courseResponse.ok || !lessonsResponse.ok) {
-      throw new Error(
-        `Course API trả về HTTP ${courseResponse.status}; lesson API trả về HTTP ${lessonsResponse.status}`,
-      );
+function getErrorMessage(error: unknown) {
+  if (error && typeof error === "object") {
+    if ("data" in error && error.data && typeof error.data === "object") {
+      if ("message" in error.data && typeof error.data.message === "string") {
+        return error.data.message;
+      }
     }
 
-    const coursePayload = (await courseResponse.json()) as CourseDetailResponse;
-    const lessonsPayload = (await lessonsResponse.json()) as CourseLessonsResponse;
-
-    if (
-      !coursePayload.data ||
-      coursePayload.status !== 1 ||
-      lessonsPayload.status !== 1
-    ) {
-      throw new Error(
-        coursePayload.message ||
-          lessonsPayload.message ||
-          "API trả về dữ liệu không hợp lệ",
-      );
+    if ("error" in error && typeof error.error === "string") {
+      return error.error;
     }
-
-    return {
-      course: {
-        _id: String(coursePayload.data.id),
-        title: coursePayload.data.title,
-        description: coursePayload.data.description || "",
-        thumbnailUrl: coursePayload.data.thumbnail_url || undefined,
-        meta_data: coursePayload.data.meta_data || undefined,
-        lessons: normalizeLessons(lessonsPayload.data || []),
-      } satisfies StudentCourse,
-      error: "",
-    };
-  } catch (fetchError) {
-    console.error("Không thể tải chi tiết khóa học:", fetchError);
-
-    return {
-      course: null,
-      error:
-        fetchError instanceof Error
-          ? fetchError.message
-          : "Không thể tải khóa học",
-    };
   }
+
+  return "Không thể tải dữ liệu khóa học";
 }
 
-export default async function CourseDetailPage({
+export default function CourseDetailPage({
   params,
 }: {
   params: Promise<{ courseId: string }>;
 }) {
-  const { courseId } = await params;
-  const { course, error } = await getCourseWithLessons(courseId);
+  const { courseId } = use(params);
+  const {
+    data: courseData,
+    error: courseError,
+    isLoading: isCourseLoading,
+  } = useGetCourseByIdQuery(courseId, { skip: !courseId });
+  const {
+    data: lessonsResponse,
+    error: lessonsError,
+    isLoading: isLessonsLoading,
+  } = useGetLessonsQuery(courseId, { skip: !courseId });
+
+  const course: StudentCourse | null = courseData
+    ? {
+        _id: String(courseData.id),
+        title: courseData.title,
+        description: courseData.description || "",
+        thumbnailUrl: courseData.thumbnail_url || undefined,
+        meta_data: courseData.meta_data || undefined,
+        lessons: normalizeLessons(lessonsResponse?.data || []),
+      }
+    : null;
+  const error = courseError
+    ? getErrorMessage(courseError)
+    : lessonsError
+      ? getErrorMessage(lessonsError)
+      : !isCourseLoading && !courseData
+        ? "API không trả về thông tin khóa học"
+        : "";
 
   return (
     <CourseDetailClient
-      params={params}
-      initialCourse={course}
-      initialError={error}
+      course={course}
+      loading={isCourseLoading || isLessonsLoading}
+      error={error}
     />
   );
 }

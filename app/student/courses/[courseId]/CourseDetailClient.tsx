@@ -9,23 +9,19 @@ import {
   getTotalDuration
 } from "@/lib/course-marketplace";
 import type { StudentCourse } from "@/typing";
-import Image from "next/image";
 import Link from "next/link";
 import type { SVGProps } from "react";
 import { useState } from "react";
 
 export default function CourseDetailPage({
-  params,
-  initialCourse,
-  initialError = "",
+  course,
+  loading,
+  error = "",
 }: {
-  params: Promise<{ courseId: string }>;
-  initialCourse: StudentCourse | null;
-  initialError?: string;
+  course: StudentCourse | null;
+  loading: boolean;
+  error?: string;
 }) {
-  const [course] = useState<StudentCourse | null>(initialCourse);
-  const [loading] = useState(false);
-  const [error] = useState(initialError);
   const [lessonSearch, setLessonSearch] = useState("");
 
   if (loading) {
@@ -151,11 +147,11 @@ export default function CourseDetailPage({
                 <div className="overflow-hidden rounded-[18px] border border-slate-200 bg-slate-100">
                   <div className="relative aspect-video">
                     {course.thumbnailUrl ? (
-                      <Image
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
                         src={course.thumbnailUrl}
                         alt={course.title}
-                        fill
-                        className="object-cover"
+                        className="absolute inset-0 h-full w-full object-cover"
                       />
                     ) : (
                       <div className={`h-full w-full ${theme.panelClassName}`} />

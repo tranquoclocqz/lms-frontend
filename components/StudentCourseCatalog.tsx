@@ -7,6 +7,7 @@ import Link from "next/link";
 import type { SVGProps } from "react";
 import { useState } from "react";
 import CourseGridSection from "./CourseGridSection";
+import Forbidden from "./Forbidden";
 
 type StudentCourseCatalogProps = {
   initialError?: string | null;
@@ -33,6 +34,7 @@ const discoverCategoryPills = [
 
 export function StudentCourseCatalog({
   initialError = null,
+  isRefreshing = false,
   pageTitle = "Khám phá thư viện khóa học BrainCourse",
   pageDescription = "Tìm khóa học phù hợp, xem chi tiết và mua hoặc vào học ngay khi đã có quyền truy cập.",
   activeHref = "/",
@@ -61,16 +63,23 @@ export function StudentCourseCatalog({
     >
       {layoutVariant === "discover" ? (
         <>
-          {error ? (
-            <section className="rounded-[32px] border border-rose-200 bg-white p-10 text-center shadow-[0_24px_60px_-42px_rgba(225,29,72,0.25)]">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-rose-50 text-rose-600">
-                <ExclamationTriangleIcon className="h-7 w-7" />
-              </div>
-              <h2 className="mt-5 text-2xl font-semibold text-slate-950">
-                Không thể tải danh sách khóa học
-              </h2>
-              <p className="mt-3 text-sm leading-6 text-slate-500">{error}</p>
+          {isRefreshing ? (
+            <section
+              role="status"
+              aria-live="polite"
+              className="flex min-h-64 flex-col items-center justify-center rounded-[32px] border border-slate-200 bg-white p-10 text-center shadow-[0_24px_60px_-42px_rgba(15,23,42,0.18)]"
+            >
+              <span className="h-10 w-10 animate-spin rounded-full border-4 border-blue-100 border-t-blue-600" />
+              <p className="mt-4 text-sm font-medium text-slate-600">
+                Đang tải danh sách khóa học...
+              </p>
             </section>
+          ) : error ? (
+            <Forbidden>
+              <p className="mt-3 text-sm leading-6 text-slate-500">{error}</p>
+            </Forbidden>
+          ) : courses.length === 0 ? (
+            <Forbidden />
           ) : (
             <>
               <CourseGridSection

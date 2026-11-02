@@ -7,6 +7,8 @@ import { StudentShell } from "@/components/StudentShell";
 import { useGetLessonsQuery } from "@/lib/redux/coursesApi";
 import type { StudentCourse } from "@/typing";
 import { HlsLessonVideo } from "./HlsLessonVideo";
+import { getDurationString } from "@/lib/course-marketplace";
+import Forbidden from "@/components/Forbidden";
 
 export default function LearningPage({
   params,
@@ -95,7 +97,7 @@ export default function LearningPage({
         description: lesson.description,
         videoSource: "local" as const,
         videoUrl: lesson.video_url,
-        duration: String(lesson.duration_seconds ?? ""),
+        duration: getDurationString(Number(lesson.duration_seconds) ?? 0),
         isFreePreview: lesson.is_preview === 1,
         order: lesson.sort_order ?? index + 1,
       })) || [],
@@ -111,7 +113,7 @@ export default function LearningPage({
   const isAccessReady = teacherMode || accessChecked;
   const canWatchActiveLesson = Boolean(
     activeLesson &&
-      (teacherMode || hasCourseAccess || Boolean(activeLesson.isFreePreview)),
+    (teacherMode || hasCourseAccess || Boolean(activeLesson.isFreePreview)),
   );
 
   const derivedError = useMemo(() => {
@@ -188,27 +190,7 @@ export default function LearningPage({
         hideHero
         hideSidebar
       >
-        <div className="flex min-h-[50vh] items-center justify-center px-4">
-        <div className="w-full max-w-xl rounded-[32px] border border-slate-200 bg-white p-8 text-center shadow-[0_24px_64px_-42px_rgba(15,23,42,0.22)]">
-          <h1 className="text-2xl font-semibold text-slate-950">Không thể tải bài học</h1>
-          <p className="mt-3 text-sm text-slate-500">{derivedError}</p>
-          <div className="mt-6 flex justify-center gap-3">
-            <button
-              type="button"
-              onClick={() => void refetchLessons()}
-              className="rounded-full bg-slate-950 px-5 py-3 text-sm font-medium text-white transition hover:bg-blue-700"
-            >
-              Thử lại
-            </button>
-            <Link
-              href={`/student/courses/${courseId}`}
-              className="rounded-full border border-slate-200 px-5 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-            >
-              Quay lại khóa học
-            </Link>
-          </div>
-        </div>
-        </div>
+        <Forbidden />
       </StudentShell>
     );
   }
@@ -224,167 +206,161 @@ export default function LearningPage({
     >
       <div className="text-slate-950">
         <div
-          className={`grid min-h-screen grid-cols-1 gap-6 ${
-            sidebarExpanded
+          className={`grid min-h-screen grid-cols-1 gap-6 ${sidebarExpanded
               ? "lg:grid-cols-[minmax(0,1fr)_360px]"
               : "lg:grid-cols-[minmax(0,1fr)_92px]"
-          }`}
+            }`}
         >
-        <main className="min-w-0">
-          <div className="rounded-[32px] border border-slate-200 bg-white p-5 shadow-[0_22px_60px_-42px_rgba(15,23,42,0.2)] sm:p-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h1 className="mt-2 text-2xl font-bold leading-tight sm:text-3xl">
-                  {activeLesson?.title}
-                </h1>
-                <p className="mt-2 text-sm text-slate-500">{course?.title}</p>
+          <main className="min-w-0">
+            <div className="rounded-[32px] border border-slate-200 bg-white p-5 shadow-[0_22px_60px_-42px_rgba(15,23,42,0.2)] sm:p-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h1 className="mt-2 text-2xl font-bold leading-tight sm:text-3xl">
+                    {activeLesson?.title}
+                  </h1>
+                  <p className="mt-2 text-sm text-slate-500">{course?.title}</p>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="mt-6 overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-[0_22px_60px_-42px_rgba(15,23,42,0.2)]">
-            <div className="aspect-video bg-black">
-              {canWatchActiveLesson && activeLesson?.videoUrl ? (
-                <HlsLessonVideo
-                  key={activeLesson.id ?? activeLesson.videoUrl}
-                  src={activeLesson.videoUrl}
-                  watermark="@id:1"
-                />
-              ) : canWatchActiveLesson ? (
-                <div className="flex h-full items-center justify-center text-center text-sm text-slate-300">
-                  Bài học này chưa có video.
+            <div className="mt-6 overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-[0_22px_60px_-42px_rgba(15,23,42,0.2)]">
+              <div className="aspect-video bg-black">
+                {canWatchActiveLesson && activeLesson?.videoUrl ? (
+                  <HlsLessonVideo
+                    key={activeLesson.id ?? activeLesson.videoUrl}
+                    src={activeLesson.videoUrl}
+                    watermark="@id:1"
+                  />
+                ) : canWatchActiveLesson ? (
+                  <div className="flex h-full items-center justify-center text-center text-sm text-slate-300">
+                    Bài học này chưa có video.
+                  </div>
+                ) : (
+                  <div className="flex h-full flex-col items-center justify-center bg-[radial-gradient(circle_at_top,rgba(79,70,229,0.22),transparent_38%),linear-gradient(180deg,#0f172a_0%,#111827_100%)] px-6 text-center">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-700 bg-slate-800 text-blue-300">
+                      <LockClosedIcon className="h-6 w-6" />
+                    </div>
+                    <h2 className="mt-5 text-xl font-semibold text-white">
+                      Bài học này đang bị khóa
+                    </h2>
+                    <p className="mt-3 max-w-md text-sm leading-6 text-slate-300">
+                      Bài học này cần mua khóa học hoặc kích hoạt mã để xem.
+                    </p>
+                    <Link
+                      href={`/student/courses/${courseId}`}
+                      className="mt-6 inline-flex items-center rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+                    >
+
+                      Quay lại trang chi tiết khóa học
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </div>
+          </main>
+
+          <aside className="rounded-[28px] border border-slate-200 bg-white">
+            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-4 sm:px-5">
+              {sidebarExpanded ? (
+                <div className="min-w-0">
+                  <h2 className="truncate text-lg font-semibold text-slate-950">
+                    Nội dung khóa học
+                  </h2>
+                  <div className="mt-1 truncate text-sm text-slate-500">
+                    {course?.title}
+                  </div>
                 </div>
               ) : (
-                <div className="flex h-full flex-col items-center justify-center bg-[radial-gradient(circle_at_top,rgba(79,70,229,0.22),transparent_38%),linear-gradient(180deg,#0f172a_0%,#111827_100%)] px-6 text-center">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-700 bg-slate-800 text-blue-300">
-                    <LockClosedIcon className="h-6 w-6" />
-                  </div>
-                  <h2 className="mt-5 text-xl font-semibold text-white">
-                    Bài học này đang bị khóa
-                  </h2>
-                  <p className="mt-3 max-w-md text-sm leading-6 text-slate-300">
-                    Bài học này cần mua khóa học hoặc kích hoạt mã để xem.
-                  </p>
-                  <Link
-                    href={`/student/courses/${courseId}`}
-                    className="mt-6 inline-flex items-center rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
-                  >
-
-                    Quay lại trang chi tiết khóa học
-                  </Link>
+                <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 lg:w-full lg:text-center">
+                  DS
                 </div>
               )}
-            </div>
-          </div>
-        </main>
 
-        <aside className="rounded-[28px] border border-slate-200 bg-white">
-          <div className="flex items-center justify-between border-b border-slate-200 px-4 py-4 sm:px-5">
+              <button
+                type="button"
+                onClick={() => setSidebarExpanded((previous) => !previous)}
+                className="ml-3 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50"
+                aria-label={sidebarExpanded ? "Thu gọn danh sách bài học" : "Mở rộng danh sách bài học"}
+              >
+                <ChevronRightIcon
+                  className={`h-4 w-4 ${sidebarExpanded ? "rotate-180" : ""}`}
+                />
+              </button>
+            </div>
+
             {sidebarExpanded ? (
-              <div className="min-w-0">
-                <h2 className="truncate text-lg font-semibold text-slate-950">
-                  Nội dung khóa học
-                </h2>
-                <div className="mt-1 truncate text-sm text-slate-500">
-                  {course?.title}
+              <div className="h-[calc(100vh-220px)] overflow-y-auto px-3 py-3 sm:px-4">
+                <div className="space-y-2">
+                  {lessons.map((lesson, index) => {
+                    const isActive = index === lessonIndex;
+                    const canWatchLesson =
+                      teacherMode || hasCourseAccess || Boolean(lesson.isFreePreview);
+
+                    return (
+                      <Link
+                        key={`${lesson.title}-${index}`}
+                        href={`/learn/${course?._id}/${lesson.id ?? index}`}
+                        className={`block rounded-[24px] border px-4 py-4 transition ${isActive
+                            ? "border-blue-200 bg-[linear-gradient(135deg,#eff6ff_0%,#eef2ff_100%)] text-blue-700 shadow-[0_18px_40px_-30px_rgba(37,99,235,0.45)]"
+                            : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+                          }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div
+                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl text-xs font-semibold ${isActive
+                                ? "bg-white text-blue-700"
+                                : "bg-slate-100 text-slate-600"
+                              }`}
+                          >
+                            {index + 1}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <p
+                                className={`truncate text-sm font-medium ${isActive ? "text-blue-700" : "text-slate-900"
+                                  }`}
+                                title={lesson.title}
+                              >
+                                {lesson.title}
+                              </p>
+                              {!canWatchLesson ? (
+                                <span className="shrink-0 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-700">
+                                  Khóa
+                                </span>
+                              ) : null}
+                            </div>
+                            <div className="mt-1 flex items-center justify-between gap-2">
+                              <p
+                                className={`truncate text-xs ${isActive ? "text-blue-600" : "text-slate-500"
+                                  }`}
+                                title={lesson.description || "Chưa có mô tả cho bài học này."}
+                              >
+                                {canWatchLesson
+                                  ? lesson.description || "Chưa có mô tả cho bài học này."
+                                  : "Cần mua hoặc kích hoạt để xem"}
+                              </p>
+                              <span
+                                className={`shrink-0 text-[11px] ${isActive ? "text-blue-600" : "text-slate-500"
+                                  }`}
+                              >
+                                {lesson.duration || "--:--"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
             ) : (
-              <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 lg:w-full lg:text-center">
-                DS
+              <div className="flex h-[calc(100vh-220px)] items-start justify-center px-3 py-4">
+                <div className="text-xs font-medium tracking-[0.18em] text-slate-400 [writing-mode:vertical-rl] [text-orientation:mixed]">
+                  {lessons.length} bài học
+                </div>
               </div>
             )}
-
-            <button
-              type="button"
-              onClick={() => setSidebarExpanded((previous) => !previous)}
-              className="ml-3 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50"
-              aria-label={sidebarExpanded ? "Thu gọn danh sách bài học" : "Mở rộng danh sách bài học"}
-            >
-              <ChevronRightIcon
-                className={`h-4 w-4 ${sidebarExpanded ? "rotate-180" : ""}`}
-              />
-            </button>
-          </div>
-
-          {sidebarExpanded ? (
-            <div className="h-[calc(100vh-220px)] overflow-y-auto px-3 py-3 sm:px-4">
-              <div className="space-y-2">
-                {lessons.map((lesson, index) => {
-                  const isActive = index === lessonIndex;
-                  const canWatchLesson =
-                    teacherMode || hasCourseAccess || Boolean(lesson.isFreePreview);
-
-                  return (
-                    <Link
-                      key={`${lesson.title}-${index}`}
-                      href={`/learn/${course?._id}/${lesson.id ?? index}`}
-                      className={`block rounded-[24px] border px-4 py-4 transition ${
-                        isActive
-                          ? "border-blue-200 bg-[linear-gradient(135deg,#eff6ff_0%,#eef2ff_100%)] text-blue-700 shadow-[0_18px_40px_-30px_rgba(37,99,235,0.45)]"
-                          : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div
-                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl text-xs font-semibold ${
-                            isActive
-                              ? "bg-white text-blue-700"
-                              : "bg-slate-100 text-slate-600"
-                          }`}
-                        >
-                          {index + 1}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <p
-                              className={`truncate text-sm font-medium ${
-                                isActive ? "text-blue-700" : "text-slate-900"
-                              }`}
-                              title={lesson.title}
-                            >
-                              {lesson.title}
-                            </p>
-                            {!canWatchLesson ? (
-                              <span className="shrink-0 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-700">
-                                Khóa
-                              </span>
-                            ) : null}
-                          </div>
-                          <div className="mt-1 flex items-center justify-between gap-2">
-                            <p
-                              className={`truncate text-xs ${
-                                isActive ? "text-blue-600" : "text-slate-500"
-                              }`}
-                              title={lesson.description || "Chưa có mô tả cho bài học này."}
-                            >
-                              {canWatchLesson
-                                ? lesson.description || "Chưa có mô tả cho bài học này."
-                                : "Cần mua hoặc kích hoạt để xem"}
-                            </p>
-                            <span
-                              className={`shrink-0 text-[11px] ${
-                                isActive ? "text-blue-600" : "text-slate-500"
-                              }`}
-                            >
-                              {lesson.duration || "--:--"}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          ) : (
-            <div className="flex h-[calc(100vh-220px)] items-start justify-center px-3 py-4">
-              <div className="text-xs font-medium tracking-[0.18em] text-slate-400 [writing-mode:vertical-rl] [text-orientation:mixed]">
-                {lessons.length} bài học
-              </div>
-            </div>
-          )}
-        </aside>
+          </aside>
         </div>
       </div>
     </StudentShell>

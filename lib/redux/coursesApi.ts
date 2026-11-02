@@ -4,6 +4,12 @@ import type { ILesson, ILessonResponse } from "@/typing/lesson";
 
 export const coursesApi = api.injectEndpoints({
   endpoints: (builder) => ({
+    getCourseById: builder.query<ICourse, string>({
+      query: (courseId) => ({
+        url: `/courses/${encodeURIComponent(courseId)}`,
+        method: "GET",
+      }),
+    }),
     getCourses: builder.query<ICourse[], GetCourseParams | void>({
       query: (params) => ({
         url: "/courses",
@@ -25,4 +31,8 @@ export const coursesApi = api.injectEndpoints({
   }),
 });
 
-export const { useGetCoursesQuery, useGetLessonsQuery } = coursesApi;
+export const {
+  useGetCourseByIdQuery,
+  useGetCoursesQuery,
+  useGetLessonsQuery,
+} = coursesApi;

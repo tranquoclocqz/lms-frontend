@@ -1,10 +1,7 @@
 import { api } from "@/lib/redux/api";
-import {
-  clearAuthSession,
-  type AuthSession,
-} from "@/lib/auth/session";
+import type { AuthSession } from "@/lib/auth/session";
 
-const AUTH_API_BASE_URL = "https://api.loclaptrinh.com/lmsuser";
+const AUTH_API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/lmsuser`;
 
 export type GoogleLoginPayload = {
   token: string;
@@ -16,6 +13,10 @@ export type AuthUser = {
   id: number;
   name: string;
   email: string;
+  avatar?: string | null;
+  avatar_url?: string | null;
+  avatarUrl?: string | null;
+  picture?: string | null;
   email_verified_at: string | null;
   created_at: string;
   updated_at: string;
@@ -53,15 +54,6 @@ export const authApi = api.injectEndpoints({
           "Content-Type": "application/json",
         },
       }),
-      async onQueryStarted(_, { dispatch, queryFulfilled }) {
-        try {
-          await queryFulfilled;
-          clearAuthSession();
-          dispatch(api.util.resetApiState());
-        } catch (error) {
-          console.error("Logout request failed:", error);
-        }
-      },
     }),
   }),
 });

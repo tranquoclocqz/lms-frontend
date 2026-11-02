@@ -1,10 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useDispatch } from "react-redux";
 import type { ReactNode, SVGProps } from "react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BrainCourseLogo } from "@/components/BrainCourseLogo";
+import { clearAuthSession } from "@/lib/auth/session";
+import { api } from "@/lib/redux/api";
+import { useGetMeQuery, useLogoutMutation } from "@/lib/redux/authApi";
+import type { AppDispatch } from "@/lib/store";
 import type { ShellSearch, SidebarNavItem } from "@/typing";
 
 type StudentShellProps = {
@@ -54,15 +59,66 @@ export function StudentShell({
   children,
 }: StudentShellProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const dispatch = useDispatch<AppDispatch>();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+  const { data: user } = useGetMeQuery(pathname);
+  const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
 
-  const isSignedIn = false;
+  const isSignedIn = Boolean(user);
   const teacherMode = false;
-  const signInHref = `/student/courses`;
-  const signUpHref = `/student/courses`;
 
   const navItems = isSignedIn ? studentNavItems : publicNavItems;
   const resolvedActiveHref = getResolvedActiveHref(navItems, activeHref || pathname);
+  const avatarUrl =
+    user?.avatar_url || user?.avatarUrl || user?.avatar || user?.picture;
+  const userName =
+    typeof user?.name === "string" && user.name.trim()
+      ? user.name.trim()
+      : "Tài khoản";
+  const avatarInitial = userName.charAt(0).toLocaleUpperCase();
+
+  useEffect(() => {
+    function closeProfileMenu(event: PointerEvent) {
+      if (
+        event.target instanceof Node &&
+        !profileMenuRef.current?.contains(event.target)
+      ) {
+        setProfileMenuOpen(false);
+      }
+    }
+
+    function closeProfileMenuOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setProfileMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", closeProfileMenu);
+    document.addEventListener("keydown", closeProfileMenuOnEscape);
+
+    return () => {
+      document.removeEventListener("pointerdown", closeProfileMenu);
+      document.removeEventListener("keydown", closeProfileMenuOnEscape);
+    };
+  }, []);
+
+  async function handleLogout() {
+    setLogoutError("");
+
+    try {
+      await logout().unwrap();
+      clearAuthSession();
+      dispatch(api.util.resetApiState());
+      setProfileMenuOpen(false);
+      router.replace("/login");
+    } catch {
+      setLogoutError("Đăng xuất thất bại. Vui lòng thử lại.");
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#f5f7fb] text-slate-950">
@@ -100,22 +156,62 @@ export function StudentShell({
                 </div>
               )}
 
-              <div className="hidden items-center gap-3 xl:flex">
-                <div className="flex items-center gap-2">
-                  <Link
-                    href={signInHref}
-                    className="inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
+              {user ? (
+                <div ref={profileMenuRef} className="relative ml-auto shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLogoutError("");
+                      setProfileMenuOpen((isOpen) => !isOpen);
+                    }}
+                    className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white text-sm font-semibold text-blue-700 shadow-sm transition hover:border-blue-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100"
+                    aria-label="Mở menu tài khoản"
+                    aria-haspopup="menu"
+                    aria-expanded={profileMenuOpen}
                   >
-                    Đăng nhập
-                  </Link>
-                  <Link
-                    href={signUpHref}
-                    className="inline-flex items-center rounded-full bg-[linear-gradient(135deg,#4f46e5_0%,#2563eb_100%)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_16px_32px_-18px_rgba(79,70,229,0.8)] transition hover:brightness-110"
-                  >
-                    Tạo tài khoản
-                  </Link>
+                    {avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={avatarUrl}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      avatarInitial
+                    )}
+                  </button>
+
+                  {profileMenuOpen ? (
+                    <div
+                      role="menu"
+                      className="absolute right-0 top-full z-50 mt-2 w-64 rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_20px_50px_-24px_rgba(15,23,42,0.35)]"
+                    >
+                      <div className="border-b border-slate-100 px-3 py-2">
+                        <p className="truncate text-sm font-semibold text-slate-900">
+                          {userName}
+                        </p>
+                        <p className="truncate text-xs text-slate-500">
+                          {user.email}
+                        </p>
+                      </div>
+                      {logoutError ? (
+                        <p role="alert" className="px-3 py-2 text-sm text-rose-600">
+                          {logoutError}
+                        </p>
+                      ) : null}
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => void handleLogout()}
+                        disabled={isLoggingOut}
+                        className="mt-1 flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm font-medium text-rose-600 transition hover:bg-rose-50 disabled:cursor-wait disabled:opacity-60"
+                      >
+                        {isLoggingOut ? "Đang đăng xuất..." : "Đăng xuất"}
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
-              </div>
+              ) : null}
             </div>
           </div>
 

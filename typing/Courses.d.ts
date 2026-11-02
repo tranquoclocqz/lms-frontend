@@ -25,6 +25,7 @@ export interface ICourse {
   user?: IUser;
   category?: ICategory;
   meta_data?: MetaData;
+  total_lessons?: number;
 }
 
 export interface MetaData {

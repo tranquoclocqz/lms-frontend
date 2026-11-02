@@ -21,13 +21,14 @@ function getCoursesErrorMessage(error: unknown) {
 }
 
 export function HomePageClient() {
-  const { data: initialCourses = [], error } = useGetCoursesQuery();
+  const { data: initialCourses = [], error, isLoading } = useGetCoursesQuery();
   const props = { initialCourses, lastedCourses: [] };
 
   return (
     <PageDataProvider data={props}>
       <StudentCourseCatalog
         initialError={error ? getCoursesErrorMessage(error) : null}
+        isRefreshing={isLoading}
         layoutVariant="discover"
         pageTitle="Khám phá BrainCourse"
         pageDescription="Một không gian học tập hiện đại để tìm khóa học nổi bật, khóa học mới và bắt đầu học nhanh hơn."
