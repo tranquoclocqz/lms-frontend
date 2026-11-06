@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-const AUTH_API_ME_URL = "https://api.loclaptrinh.com/lmsuser/me";
+const AUTH_API_ME_URL = `${process.env.NEXT_PUBLIC_API_URL}/lmsuser/me`;
 const AUTH_TOKEN_COOKIE = "lms_auth_token";
 
 function redirectToLogin(request: NextRequest, clearToken = false) {
