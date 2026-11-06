@@ -17,7 +17,7 @@ type ApiEnvelope<T> = {
 };
 
 const rawBaseQuery = fetchBaseQuery({
-  baseUrl: process.env.NEXT_PUBLIC_API_URL || "/api",
+  baseUrl: process.env.NEXT_PUBLIC_API_URL || "",
   credentials: "include",
   prepareHeaders: (headers) => {
     const token = getStoredAccessToken();

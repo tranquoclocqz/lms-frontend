@@ -2,12 +2,10 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, useState } from "react";
 import type {
-  CourseFormState,
   CourseLesson,
-  CoursePayload,
-  CourseResponseShape,
+  CourseFormState,
   CourseStatus,
   LessonDraft,
 } from "@/typing";
@@ -43,57 +41,10 @@ const initialCourseForm: CourseFormState = {
   status: "Draft",
 };
 
-function normalizeCourseForm(course?: CoursePayload): CourseFormState {
-  return {
-    title: course?.title || "",
-    shortDescription: course?.shortDescription || "",
-    description: course?.description || "",
-    authorName: course?.authorName || "",
-    category: course?.category || "Development",
-    level: course?.level || "Beginner",
-    language: course?.language || "English",
-    originalPrice:
-      typeof course?.originalPrice === "number" && course.originalPrice > 0
-        ? String(course.originalPrice)
-        : "",
-    discountPrice:
-      typeof course?.discountPrice === "number" && course.discountPrice > 0
-        ? String(course.discountPrice)
-        : typeof course?.discountPrice === "number" && course.discountPrice === 0
-          ? "0"
-          : "",
-    thumbnailUrl: course?.thumbnailUrl || "",
-    status: course?.status || "Draft",
-  };
-}
-
-function normalizeLessons(lessons?: CourseLesson[]): CourseLesson[] {
-  return (lessons || [])
-    .map((lesson, index) => ({
-      title: lesson.title || "",
-      description: lesson.description || "",
-      videoSource:
-        lesson.videoSource === "bunny"
-          ? ("bunny" as const)
-          : ("local" as const),
-      videoUrl: lesson.videoUrl || "",
-      duration: lesson.duration || "",
-      isFreePreview: Boolean(lesson.isFreePreview),
-      order: Number.isFinite(lesson.order) ? lesson.order : index + 1,
-    }))
-    .sort((left, right) => left.order - right.order)
-    .map((lesson, index) => ({
-      ...lesson,
-      order: index + 1,
-    }));
-}
-
 export function CourseEditor({
   mode,
-  courseId,
 }: {
   mode: "create" | "edit";
-  courseId?: string;
 }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabKey>("Basic Info");
@@ -103,56 +54,6 @@ export function CourseEditor({
   const [isUploadingThumbnail, setIsUploadingThumbnail] = useState(false);
   const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isLoadingCourse, setIsLoadingCourse] = useState(mode === "edit");
-  const [loadError, setLoadError] = useState("");
-
-  useEffect(() => {
-    if (mode !== "edit" || !courseId) {
-      return;
-    }
-
-    const resolvedCourseId = courseId;
-    let mounted = true;
-
-    async function fetchCourse() {
-      try {
-        setIsLoadingCourse(true);
-        setLoadError("");
-
-        const response = await fetch(`/api/courses/${encodeURIComponent(resolvedCourseId)}`);
-        const result = (await response.json()) as CourseResponseShape;
-
-        if (!response.ok || !result.course) {
-          throw new Error(result.message || "Không thể tải khóa học");
-        }
-
-        if (!mounted) {
-          return;
-        }
-
-        setCourse(normalizeCourseForm(result.course as CoursePayload));
-        setLessons(normalizeLessons((result.course as CoursePayload).lessons));
-      } catch (error) {
-        console.error(error);
-
-        if (mounted) {
-          setLoadError(
-            error instanceof Error ? error.message : "Không thể tải khóa học",
-          );
-        }
-      } finally {
-        if (mounted) {
-          setIsLoadingCourse(false);
-        }
-      }
-    }
-
-    void fetchCourse();
-
-    return () => {
-      mounted = false;
-    };
-  }, [courseId, mode]);
 
   const updateCourseField = <K extends keyof CourseFormState>(
     key: K,
@@ -239,7 +140,7 @@ export function CourseEditor({
       ...lessonDraft,
       title: lessonDraft.title.trim(),
       description: lessonDraft.description.trim(),
-      duration: lessonDraft.duration.trim(),
+      duration: parseVideoDuration(lessonDraft.duration),
       order: lessons.length + 1,
     };
 
@@ -353,42 +254,6 @@ export function CourseEditor({
       : mode === "edit"
         ? "Cập nhật khóa học"
         : "Xuất bản khóa học";
-
-  if (isLoadingCourse) {
-    return (
-      <div className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl animate-pulse space-y-6">
-          <div className="h-28 rounded-3xl bg-white shadow-sm" />
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-            <div className="space-y-6">
-              <div className="h-[34rem] rounded-3xl bg-white shadow-sm" />
-            </div>
-            <div className="h-[30rem] rounded-3xl bg-white shadow-sm" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (loadError) {
-    return (
-      <div className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-3xl rounded-3xl border border-rose-200 bg-white p-10 text-center shadow-sm">
-          <h1 className="text-3xl font-semibold text-slate-950">
-            Không thể tải khóa học
-          </h1>
-          <p className="mt-4 text-sm leading-6 text-slate-500">{loadError}</p>
-          <button
-            type="button"
-            onClick={() => router.push("/courses")}
-            className="mt-6 inline-flex rounded-xl bg-slate-950 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800"
-          >
-            Quay lại danh sách khóa học
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -889,7 +754,7 @@ export function CourseEditor({
                                 </p>
                               </div>
                               <p className="text-sm text-slate-500">
-                                Thời lượng: {lesson.duration || "--:--"}
+                                Thời lượng: {lesson.duration ? formatVideoDuration(lesson.duration) : "--:--"}
                               </p>
                               <p className="text-sm text-slate-500">
                                 Nguồn video: {lesson.videoSource === "bunny" ? "Bunny link" : "Local video"}
@@ -1066,6 +931,16 @@ function formatVideoDuration(totalSeconds: number) {
   return [minutes, seconds]
     .map((value) => String(value).padStart(2, "0"))
     .join(":");
+}
+
+function parseVideoDuration(value: string) {
+  const parts = value.split(":").map(Number);
+
+  if (parts.some((part) => !Number.isInteger(part) || part < 0)) {
+    return 0;
+  }
+
+  return parts.reduce((seconds, part) => seconds * 60 + part, 0);
 }
 
 function formatPreviewPriceVnd(value: string) {

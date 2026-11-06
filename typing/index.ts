@@ -75,29 +75,6 @@ export type LessonDraft = {
   isFreePreview: boolean;
 };
 
-export type CoursePayload = {
-  _id?: string;
-  title?: string;
-  shortDescription?: string;
-  description?: string;
-  authorName?: string;
-  category?: string;
-  level?: string;
-  language?: string;
-  originalPrice?: number;
-  discountPrice?: number;
-  price?: number | string;
-  thumbnailUrl?: string;
-  status?: CourseStatus;
-  lessons?: CourseLesson[];
-};
-
-export type CourseResponseShape = {
-  success?: boolean;
-  course?: StudentCourse | CoursePayload;
-  message?: string;
-};
-
 export type ActivationCodeCourse = {
   _id: string;
   title: string;
@@ -133,22 +110,6 @@ export type TeacherSettings = {
   allowStudentSignup: boolean;
 };
 
-export type EnrollmentItem = {
-  _id: string;
-  studentName: string;
-  studentEmail: string;
-  courseId:
-    | string
-    | {
-        _id: string;
-        title: string;
-      };
-  status: EnrollmentStatus;
-  progress: number;
-  enrolledAt?: string;
-  completedAt?: string | null;
-};
-
 export type EnrollmentStats = {
   totalStudents: number;
   activeStudents: number;
@@ -166,52 +127,6 @@ export type CreateEnrollmentPayload = {
   studentEmail: string;
   courseId: string;
   status: EnrollmentStatus;
-};
-
-export type UpdateEnrollmentPayload = {
-  status: EnrollmentStatus;
-  progress: number;
-};
-
-export type CreateActivationCodesPayload = {
-  courseId?: string;
-  quantity?: number | string;
-};
-
-export type CourseUpdatePayload = {
-  title?: string;
-  lessons?: Array<{
-    title?: string;
-    description?: string;
-    videoSource?: "local" | "bunny" | string;
-    videoUrl?: string;
-    duration?: string;
-    isFreePreview?: boolean;
-    order?: number;
-  }>;
-};
-
-export type CourseAccessRouteContext = {
-  params: Promise<{ id: string }>;
-};
-
-export type EnrollmentRouteContext = {
-  params: Promise<{ id: string }>;
-};
-
-export type ProgressPayload = {
-  courseId?: string;
-  lessonId?: string;
-  progress?: number;
-  status?: string;
-};
-
-export type RedeemCodePayload = {
-  code?: string;
-};
-
-export type OrderRouteContext = {
-  params: Promise<{ orderId: string }>;
 };
 
 export type MyCourseItem = {
