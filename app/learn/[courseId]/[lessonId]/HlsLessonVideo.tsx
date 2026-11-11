@@ -1,5 +1,6 @@
 "use client";
 
+import { getStoredAccessToken } from "@/lib/auth/session";
 import Hls from "hls.js";
 import { useEffect, useRef } from "react";
 
@@ -37,9 +38,7 @@ export function HlsLessonVideo({
                     if (u.includes('.key') || u.includes('key') || u.includes('getkey')) {
                         xhr.withCredentials = true
                         // if you use token-based auth, store token in localStorage under `lms_token`
-                        const token = typeof window !== 'undefined'
-                            ? localStorage.getItem('lms_token') || localStorage.getItem('token')
-                            : null
+                        const token = getStoredAccessToken();
                         if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
                         // Custom header can help backend route if same origin rules required
                         xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest')
