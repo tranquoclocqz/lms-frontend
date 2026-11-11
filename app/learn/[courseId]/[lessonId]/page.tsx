@@ -339,12 +339,6 @@ export default function LearningPage({
                                   ? lesson.description || "Chưa có mô tả cho bài học này."
                                   : "Cần mua hoặc kích hoạt để xem"}
                               </p>
-                              <span
-                                className={`shrink-0 text-[11px] ${isActive ? "text-blue-600" : "text-slate-500"
-                                  }`}
-                              >
-                                {lesson.duration || "--:--"}
-                              </span>
                             </div>
                           </div>
                         </div>

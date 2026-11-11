@@ -128,7 +128,7 @@ export default function CourseDetailPage({
               <div className="grid gap-4 p-5 lg:min-h-[168px] lg:grid-cols-[minmax(0,1fr)_280px] lg:items-center">
                 <div className="min-w-0">
                   <p className="text-sm text-slate-400">
-                    <Link href="/student/courses" className="transition hover:text-slate-600">
+                    <Link href="/" className="transition hover:text-slate-600">
                       Khóa học
                     </Link>
                     <span className="px-2 text-slate-300">/</span>
@@ -216,9 +216,6 @@ export default function CourseDetailPage({
                             </h3>
                           </div>
                           <div className="flex shrink-0 items-center gap-3">
-                            <span className="hidden text-sm text-slate-500 sm:inline">
-                              {getDurationString(lesson.duration ?? 0) || "--:--"}
-                            </span>
                             <Link
                               href={`/learn/${course._id}/${lesson.id}`}
                               className="inline-flex h-9 items-center justify-center rounded-full bg-slate-950 px-3.5 text-xs font-semibold text-white transition hover:bg-blue-700"
