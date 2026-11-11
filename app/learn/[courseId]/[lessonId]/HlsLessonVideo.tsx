@@ -36,15 +36,15 @@ export function HlsLessonVideo({
                     xhr.responseType = 'arraybuffer'
                     const u = url.toLowerCase()
                     console.log('HLS xhrSetup for URL:', url)
-                    // if (u.includes('.key') || u.includes('key') || u.includes('getkey')) {
+                    if (u.includes('.key') || u.includes('key') || u.includes('getkey')) {
                         xhr.withCredentials = true
+                    }
                         // if you use token-based auth, store token in localStorage under `lms_token`
                         const token = getStoredAccessToken();
                         console.log('Token for HLS key request:', token)
                         if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
                         // Custom header can help backend route if same origin rules required
                         xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest')
-                    // }
                 },
             })
 
