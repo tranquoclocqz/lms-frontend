@@ -9,6 +9,7 @@ export type AuthSession = {
 
 export function getStoredAccessToken() {
   if (typeof window === "undefined") {
+    console.log('123');
     return null;
   }
 
