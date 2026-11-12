@@ -6,6 +6,12 @@ export interface ILesson {
   video_url: string;
   duration_seconds?: number;
   sort_order?: number;
+  lesson_section_id?: number | string;
+  section?: {
+    id: number | string;
+    title: string;
+    sort_order?: number;
+  };
   is_preview?: number;
   created_at?: string;
 }

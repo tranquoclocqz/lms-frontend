@@ -19,7 +19,7 @@ export const coursesApi = api.injectEndpoints({
     }),
     getLessons: builder.query<ILessonResponse, string>({
       query: (courseId) => ({
-        url: `/courses/lessons/${encodeURIComponent(courseId)}`,
+        url: `/courses/${encodeURIComponent(courseId)}/lessons`,
         method: "GET",
       }),
       transformResponse: (lessons: ILesson[]): ILessonResponse => ({

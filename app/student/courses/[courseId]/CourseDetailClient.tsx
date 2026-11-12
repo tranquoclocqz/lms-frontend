@@ -8,7 +8,7 @@ import {
   getDurationString,
   getTotalDuration
 } from "@/lib/course-marketplace";
-import type { StudentCourse } from "@/typing";
+import type { CourseLesson, StudentCourse } from "@/typing";
 import Link from "next/link";
 import type { SVGProps } from "react";
 import { useState } from "react";
@@ -23,6 +23,9 @@ export default function CourseDetailPage({
   error?: string;
 }) {
   const [lessonSearch, setLessonSearch] = useState("");
+  const [sectionExpandedOverrides, setSectionExpandedOverrides] = useState<
+    Record<string, boolean>
+  >({});
 
   if (loading) {
     return (
@@ -97,18 +100,7 @@ export default function CourseDetailPage({
   const rating = getCourseRating();
   const courseSummary = getCourseSummary(course);
  
-  const filteredLessons = lessons
-    .map((lesson, index) => ({ lesson, index }))
-    .filter(({ lesson }) => {
-      const query = lessonSearch.trim().toLowerCase();
-      if (!query) {
-        return true;
-      }
-
-      return [lesson.title || "", lesson.description || ""].some((value) =>
-        value.toLowerCase().includes(query),
-      );
-    });
+  const filteredLessons = groupLessonsBySection(lessons, lessonSearch);
   const compactDuration = getTotalDuration(lessons);
   const learningOutcomes = course.meta_data?.outcome || undefined;
 
@@ -199,32 +191,76 @@ export default function CourseDetailPage({
                 </div>
               ) : (
                 <div className="divide-y divide-slate-200/80">
-                  {filteredLessons.map(({ lesson, index }) => {
+                  {filteredLessons.map((section, sectionIndex) => {
+                    const isExpanded =
+                      sectionExpandedOverrides[section.id] ?? sectionIndex < 2;
+                    const lessonsId = `section-lessons-${section.id}`;
 
                     return (
-                      <div
-                        key={`${lesson.title}-${index}`}
-                        className="px-4 py-1.5 transition hover:bg-slate-50/70 sm:px-6"
-                      >
-                        <div className="flex min-h-[64px] items-center gap-4">
-                          <div className="w-8 shrink-0 text-sm font-semibold text-slate-400">
-                            {String(index + 1).padStart(2, "0")}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <h3 className="truncate text-sm font-semibold text-slate-950">
-                              {lesson.title}
-                            </h3>
-                          </div>
-                          <div className="flex shrink-0 items-center gap-3">
-                            <Link
-                              href={`/learn/${course._id}/${lesson.id}`}
-                              className="inline-flex h-9 items-center justify-center rounded-full bg-slate-950 px-3.5 text-xs font-semibold text-white transition hover:bg-blue-700"
+                      <section key={section.id}>
+                        <button
+                          type="button"
+                          aria-expanded={isExpanded}
+                          aria-controls={lessonsId}
+                          onClick={() =>
+                            setSectionExpandedOverrides((current) => ({
+                              ...current,
+                              [section.id]: !isExpanded,
+                            }))
+                          }
+                          className="flex w-full items-center justify-between gap-3 bg-slate-200 px-4 py-3 text-left transition hover:bg-slate-300/80 sm:px-6 cursor-pointer"
+                        >
+                          <span className="text-sm font-semibold text-slate-900">
+                            {section.title}
+                          </span>
+                          <span className="flex shrink-0 items-center gap-2 text-xs text-slate-600">
+                            {section.items.length} bài học
+                            <svg
+                              viewBox="0 0 20 20"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth={1.8}
+                              aria-hidden="true"
+                              className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-180" : ""}`}
                             >
-                              Học
-                            </Link>
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="m5 7.5 5 5 5-5"
+                              />
+                            </svg>
+                          </span>
+                        </button>
+                        {isExpanded && (
+                          <div id={lessonsId} className="divide-y divide-slate-200/80">
+                            {section.items.map(({ lesson }, index) => (
+                              <div
+                                key={lesson.id ?? `${section.id}-${lesson.order}-${lesson.title}`}
+                                className="px-4 py-1.5 transition hover:bg-slate-50/70 sm:px-6"
+                              >
+                                <div className="flex min-h-[32px] items-center gap-4">
+                                  <div className="w-8 shrink-0 text-sm font-semibold text-slate-400">
+                                    {String(index + 1).padStart(2, "0")}
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <h4 className="truncate text-sm font-semibold text-slate-950">
+                                      {lesson.title}
+                                    </h4>
+                                  </div>
+                                  <div className="flex shrink-0 items-center gap-3">
+                                    <Link
+                                      href={`/learn/${course._id}/${lesson.id}`}
+                                      className="inline-flex h-9 items-center justify-center rounded-full bg-slate-950 px-3.5 text-xs font-semibold text-white transition hover:bg-blue-700"
+                                    >
+                                      Học
+                                    </Link>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                        </div>
-                      </div>
+                        )}
+                      </section>
                     );
                   })}
                 </div>
@@ -235,6 +271,61 @@ export default function CourseDetailPage({
       </StudentShell>
     </>
   );
+}
+
+function groupLessonsBySection(lessons: CourseLesson[], search: string) {
+  const query = search.trim().toLowerCase();
+  const sections = new Map<
+    string,
+    {
+      id: string;
+      title: string;
+      sortOrder: number;
+      firstIndex: number;
+      items: Array<{ lesson: CourseLesson; index: number }>;
+    }
+  >();
+
+  lessons.forEach((lesson, index) => {
+    if (
+      query &&
+      ![lesson.title || "", lesson.description || ""].some((value) =>
+        value.toLowerCase().includes(query),
+      )
+    ) {
+      return;
+    }
+
+    const sectionId =
+      lesson.section?.id ?? lesson.lesson_section_id ?? "unsectioned";
+    const id = String(sectionId);
+    const section = sections.get(id);
+
+    if (section) {
+      section.items.push({ lesson, index });
+      return;
+    }
+
+    sections.set(id, {
+      id,
+      title: lesson.section?.title || (id === "unsectioned" ? "Bài học" : `Section ${id}`),
+      sortOrder: lesson.section?.sort_order ?? Number.MAX_SAFE_INTEGER,
+      firstIndex: index,
+      items: [{ lesson, index }],
+    });
+  });
+
+  return [...sections.values()]
+    .map((section) => ({
+      ...section,
+      items: section.items.sort(
+        (a, b) => a.lesson.order - b.lesson.order || a.index - b.index,
+      ),
+    }))
+    .sort(
+      (a, b) =>
+        a.sortOrder - b.sortOrder || a.firstIndex - b.firstIndex,
+    );
 }
 
 function ExclamationTriangleIcon(props: SVGProps<SVGSVGElement>) {

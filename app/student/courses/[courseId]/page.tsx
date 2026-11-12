@@ -18,6 +18,8 @@ function normalizeLessons(lessons: ILesson[]) {
     duration: lesson.duration_seconds ?? 0,
     isFreePreview: lesson.is_preview === 1,
     order: lesson.sort_order ?? index + 1,
+    lesson_section_id: lesson.lesson_section_id,
+    section: lesson.section,
   }));
 }
 

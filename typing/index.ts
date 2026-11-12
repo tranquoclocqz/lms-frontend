@@ -19,6 +19,12 @@ export type CourseLesson = {
   duration?: number;
   isFreePreview?: boolean;
   order: number;
+  lesson_section_id?: number | string;
+  section?: {
+    id: number | string;
+    title: string;
+    sort_order?: number;
+  };
 };
 
 export type StudentCourse = {

@@ -23,6 +23,9 @@ export default function LearningPage({
   const [accessChecked, setAccessChecked] = useState(false);
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [sectionExpandedOverrides, setSectionExpandedOverrides] = useState<
+    Record<string, boolean>
+  >({});
   const teacherMode = false;
   const {
     data: lessonsResponse,
@@ -89,19 +92,79 @@ export default function LearningPage({
     };
   }, [courseId, teacherMode]);
 
-  const lessons = useMemo(
-    () =>
-      lessonsResponse?.data?.map((lesson, index) => ({
-        id: lesson.id,
-        title: lesson.title,
-        description: lesson.description,
-        videoSource: "local" as const,
-        videoUrl: lesson.video_url,
-        duration: getDurationString(Number(lesson.duration_seconds) ?? 0),
-        isFreePreview: lesson.is_preview === 1,
-        order: lesson.sort_order ?? index + 1,
-      })) || [],
+  const lessonSections = useMemo(
+    () => {
+      const sections = new Map<
+        string,
+        {
+          id: string;
+          title: string;
+          sortOrder: number;
+          firstIndex: number;
+          items: Array<{
+            id: number | string;
+            title: string;
+            description: string;
+            videoSource: "local";
+            videoUrl: string;
+            duration: string;
+            isFreePreview: boolean;
+            order: number;
+            firstIndex: number;
+          }>;
+        }
+      >();
+
+      lessonsResponse?.data?.forEach((lesson, index) => {
+        const sectionId =
+          lesson.section?.id ?? lesson.lesson_section_id ?? "unsectioned";
+        const id = String(sectionId);
+        const section = sections.get(id);
+        const item = {
+          id: lesson.id,
+          title: lesson.title,
+          description: lesson.description,
+          videoSource: "local" as const,
+          videoUrl: lesson.video_url,
+          duration: getDurationString(Number(lesson.duration_seconds) || 0),
+          isFreePreview: lesson.is_preview === 1,
+          order: lesson.sort_order ?? index + 1,
+          firstIndex: index,
+        };
+
+        if (section) {
+          section.items.push(item);
+          return;
+        }
+
+        sections.set(id, {
+          id,
+          title:
+            lesson.section?.title ||
+            (id === "unsectioned" ? "Bài học" : `Section ${id}`),
+          sortOrder: lesson.section?.sort_order ?? Number.MAX_SAFE_INTEGER,
+          firstIndex: index,
+          items: [item],
+        });
+      });
+
+      return [...sections.values()]
+        .map((section) => ({
+          ...section,
+          items: section.items.sort(
+            (a, b) => a.order - b.order || a.firstIndex - b.firstIndex,
+          ),
+        }))
+        .sort(
+          (a, b) =>
+            a.sortOrder - b.sortOrder || a.firstIndex - b.firstIndex,
+        );
+    },
     [lessonsResponse?.data],
+  );
+  const lessons = useMemo(
+    () => lessonSections.flatMap((section) => section.items),
+    [lessonSections],
   );
   const lessonIndex = lessons.findIndex((lesson) => lesson.id === Number(lessonId));
   const fallbackLesson =
@@ -290,65 +353,105 @@ export default function LearningPage({
 
             {sidebarExpanded ? (
               <div className="h-[calc(100vh-220px)] overflow-y-auto px-3 py-3 sm:px-4">
-                <div className="space-y-2">
-                  {lessons.map((lesson, index) => {
-                    const isActive = index === lessonIndex;
-                    const canWatchLesson =
-                      teacherMode || hasCourseAccess || Boolean(lesson.isFreePreview);
+                <div className="space-y-3">
+                  {lessonSections.map((section, sectionIndex) => {
+                    const isSectionExpanded =
+                      sectionExpandedOverrides[section.id] ?? sectionIndex < 2;
+                    const sectionLessonsId = `learning-section-${section.id}`;
 
                     return (
-                      <Link
-                        key={`${lesson.title}-${index}`}
-                        href={`/learn/${course?._id}/${lesson.id ?? index}`}
-                        className={`block rounded-[24px] border px-4 py-4 transition ${isActive
-                            ? "border-blue-200 bg-[linear-gradient(135deg,#eff6ff_0%,#eef2ff_100%)] text-blue-700 shadow-[0_18px_40px_-30px_rgba(37,99,235,0.45)]"
-                            : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
-                          }`}
+                      <section
+                        key={section.id}
+                        className="overflow-hidden rounded-[20px] border border-slate-200"
                       >
-                        <div className="flex items-start gap-3">
-                          <div
-                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl text-xs font-semibold ${isActive
-                                ? "bg-white text-blue-700"
-                                : "bg-slate-100 text-slate-600"
-                              }`}
-                          >
-                            {index + 1}
+                        <button
+                          type="button"
+                          aria-expanded={isSectionExpanded}
+                          aria-controls={sectionLessonsId}
+                          onClick={() =>
+                            setSectionExpandedOverrides((current) => ({
+                              ...current,
+                              [section.id]: !isSectionExpanded,
+                            }))
+                          }
+                          className="flex w-full items-center justify-between gap-3 bg-slate-50 px-4 py-3 text-left transition hover:bg-slate-100"
+                        >
+                          <span className="text-sm font-semibold text-slate-900">
+                            {section.title}
+                          </span>
+                          <span className="flex shrink-0 items-center gap-2 text-xs text-slate-500">
+                            {section.items.length} bài học
+                            <ChevronRightIcon
+                              className={`h-4 w-4 transition-transform ${isSectionExpanded ? "rotate-90" : ""}`}
+                            />
+                          </span>
+                        </button>
+                        {isSectionExpanded && (
+                          <div id={sectionLessonsId} className="space-y-2 p-2">
+                            {section.items.map((lesson) => {
+                              const index = lessons.indexOf(lesson);
+                              const isActive = index === lessonIndex;
+                              const canWatchLesson =
+                                teacherMode ||
+                                hasCourseAccess ||
+                                Boolean(lesson.isFreePreview);
+
+                              return (
+                                <Link
+                                  key={`${lesson.title}-${lesson.id}`}
+                                  href={`/learn/${course?._id}/${lesson.id ?? index}`}
+                                  className={`block rounded-[18px] border px-3 py-3 transition ${isActive
+                                      ? "border-blue-200 bg-[linear-gradient(135deg,#eff6ff_0%,#eef2ff_100%)] text-blue-700 shadow-[0_18px_40px_-30px_rgba(37,99,235,0.45)]"
+                                      : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+                                    }`}
+                                >
+                                  <div className="flex items-start gap-3">
+                                    <div
+                                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl text-xs font-semibold ${isActive
+                                          ? "bg-white text-blue-700"
+                                          : "bg-slate-100 text-slate-600"
+                                        }`}
+                                    >
+                                      {index + 1}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-center gap-2">
+                                        <p
+                                          className={`truncate text-sm font-medium ${isActive ? "text-blue-700" : "text-slate-900"
+                                            }`}
+                                          title={lesson.title}
+                                        >
+                                          {lesson.title}
+                                        </p>
+                                        {!canWatchLesson ? (
+                                          <span className="shrink-0 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-700">
+                                            Khóa
+                                          </span>
+                                        ) : null}
+                                      </div>
+                                      <p
+                                        className={`mt-1 truncate text-xs ${isActive ? "text-blue-600" : "text-slate-500"
+                                          }`}
+                                        title={lesson.description || "Chưa có mô tả cho bài học này."}
+                                      >
+                                        {canWatchLesson
+                                          ? lesson.description || "Chưa có mô tả cho bài học này."
+                                          : "Cần mua hoặc kích hoạt để xem"}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </Link>
+                              );
+                            })}
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <p
-                                className={`truncate text-sm font-medium ${isActive ? "text-blue-700" : "text-slate-900"
-                                  }`}
-                                title={lesson.title}
-                              >
-                                {lesson.title}
-                              </p>
-                              {!canWatchLesson ? (
-                                <span className="shrink-0 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-700">
-                                  Khóa
-                                </span>
-                              ) : null}
-                            </div>
-                            <div className="mt-1 flex items-center justify-between gap-2">
-                              <p
-                                className={`truncate text-xs ${isActive ? "text-blue-600" : "text-slate-500"
-                                  }`}
-                                title={lesson.description || "Chưa có mô tả cho bài học này."}
-                              >
-                                {canWatchLesson
-                                  ? lesson.description || "Chưa có mô tả cho bài học này."
-                                  : "Cần mua hoặc kích hoạt để xem"}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </Link>
+                        )}
+                      </section>
                     );
                   })}
                 </div>
               </div>
             ) : (
-              <div className="flex h-[calc(100vh-220px)] items-start justify-center px-3 py-4">
+              <div className="flex h-[calc(100vh-100px)] items-start justify-center px-3 py-4">
                 <div className="text-xs font-medium tracking-[0.18em] text-slate-400 [writing-mode:vertical-rl] [text-orientation:mixed]">
                   {lessons.length} bài học
                 </div>
