@@ -292,6 +292,7 @@ export default function LearningPage({
                   <HlsLessonVideo
                     key={activeLesson.id ?? activeLesson.videoUrl}
                     src={activeLesson.videoUrl}
+                    lessonId={activeLesson.id}
                     watermark="@id:1"
                   />
                 ) : canWatchActiveLesson ? (
