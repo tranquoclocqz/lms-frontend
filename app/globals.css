@@ -1,89 +1,100 @@
 @import "tailwindcss";
-
 html {
-  font-family:
-    "Plus Jakarta Sans", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-family: "Plus Jakarta Sans", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 }
 
 body {
-  min-height: 100%;
-  background: #ffffff;
-  color: #020617;
+    min-height: 100%;
+    background: #ffffff;
+    color: #020617;
 }
 
 video::-webkit-media-controls-panel {
-  background-image: none !important;
-  background-color: transparent !important;
-  box-shadow: none !important;
+    background-image: none !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+}
+
+.video-controls-content {
+    background-color: rgba(0, 0, 0, .5);
+}
+
+.video-controls-backdrop {
+    background-color: none;
 }
 
 @keyframes lesson-video-watermark-drift {
-  0%,
-  100% {
-    transform: translate(8%, 10%);
-  }
-  25% {
-    transform: translate(610%, 30%);
-  }
-  50% {
-    transform: translate(420%, 760%);
-  }
-  75% {
-    transform: translate(12%, 650%);
-  }
+    0%,
+    100% {
+        transform: translate(8%, 10%);
+    }
+    25% {
+        transform: translate(610%, 30%);
+    }
+    50% {
+        transform: translate(420%, 760%);
+    }
+    75% {
+        transform: translate(12%, 650%);
+    }
 }
 
 .lesson-video-watermark {
-  animation: lesson-video-watermark-drift 17s linear infinite alternate;
-  opacity: 0.42;
+    animation: lesson-video-watermark-drift 17s linear infinite alternate;
+    opacity: 0.42;
 }
 
 code,
 pre,
 kbd,
 samp {
-  font-family:
-    "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+    font-family: "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
 }
 
 .lds-facebook,
 .lds-facebook div {
-  box-sizing: border-box;
+    box-sizing: border-box;
 }
+
 .lds-facebook {
-  display: inline-block;
-  position: relative;
-  width: 80px;
-  height: 80px;
+    display: inline-block;
+    position: relative;
+    width: 80px;
+    height: 80px;
 }
+
 .lds-facebook div {
-  display: inline-block;
-  position: absolute;
-  left: 8px;
-  width: 16px;
-  background: currentColor;
-  animation: lds-facebook 1.2s cubic-bezier(0, 0.5, 0.5, 1) infinite;
+    display: inline-block;
+    position: absolute;
+    left: 8px;
+    width: 16px;
+    background: currentColor;
+    animation: lds-facebook 1.2s cubic-bezier(0, 0.5, 0.5, 1) infinite;
 }
+
 .lds-facebook div:nth-child(1) {
-  left: 8px;
-  animation-delay: -0.24s;
+    left: 8px;
+    animation-delay: -0.24s;
 }
+
 .lds-facebook div:nth-child(2) {
-  left: 32px;
-  animation-delay: -0.12s;
+    left: 32px;
+    animation-delay: -0.12s;
 }
+
 .lds-facebook div:nth-child(3) {
-  left: 56px;
-  animation-delay: 0s;
+    left: 56px;
+    animation-delay: 0s;
 }
+
 @keyframes lds-facebook {
-  0% {
-    top: 8px;
-    height: 64px;
-  }
-  50%,
-  100% {
-    top: 24px;
-    height: 32px;
-  }
+    0% {
+        top: 8px;
+        height: 64px;
+    }
+    50%,
+    100% {
+        top: 24px;
+        height: 32px;
+    }
 }
