@@ -11,6 +11,12 @@ body {
   color: #020617;
 }
 
+video::-webkit-media-controls-panel {
+  background-image: none !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
 @keyframes lesson-video-watermark-drift {
   0%,
   100% {
