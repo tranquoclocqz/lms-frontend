@@ -16,11 +16,11 @@ video::-webkit-media-controls-panel {
 }
 
 .video-controls-content {
-    background-color: rgba(0, 0, 0, .5);
+    background-color: rgba(0, 0, 0, .5) !important;
 }
 
 .video-controls-backdrop {
-    background-color: none;
+    background: none !important;
 }
 
 @keyframes lesson-video-watermark-drift {
